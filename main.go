@@ -23,8 +23,12 @@ type Num struct {
 	Value int
 }
 
+type Str struct {
+	Value string
+}
+
 type Var struct {
-	Name string
+	Name  string
 }
 
 type Add struct {
@@ -69,6 +73,7 @@ func lexer(src string) []Token {
 
 	for i < len(src) {
 		var c = src[i]
+
 		if unicode.IsSpace(rune(c)) {
 			i += 1
 		} else if unicode.IsDigit(rune(c)) {
@@ -114,6 +119,16 @@ func lexer(src string) []Token {
 		} else if c == ')' {
 			tokens = append(tokens, Token{"RPAREN", string(c)})
 			i += 1
+		} else if c == '"' {
+			tokens = append(tokens, Token{"QUOTE", string(c)})
+			i += 1
+			var j = i
+			for j < len(src) && src[j] != '"' {
+				j += 1;
+			}
+			tokens = append(tokens, Token{"STR", src[i:j]})
+			tokens = append(tokens, Token{"QUOTE", "\""})
+			i = j + 1
 		} else {
 			log.Fatalf("SyntaxError: Unexpected character: %s", string(c))
 			os.Exit(0)
@@ -121,6 +136,8 @@ func lexer(src string) []Token {
 	}
 
 	tokens = append(tokens, Token{"EOF", ""})
+
+	//fmt.Println("Lexer Tokens:", tokens)
 
 	return tokens
 }
@@ -231,6 +248,15 @@ func (p *Parser) primary() any {
 		node := p.expr()
 		p.eat("RPAREN")
 		return node
+	} else if tok.Type == "QUOTE" {
+		value := ""
+		p.eat("QUOTE")
+		if p.cur().Type == "STR" {
+			value = p.cur().Value
+		}
+		p.eat("STR")
+		p.eat("QUOTE")
+		return Str{value}
 	} else {
 		log.Fatalf("Unexpected token in primary (%s, %s)", tok.Type, tok.Value)
 		return 0
@@ -260,6 +286,8 @@ func eval_expr(expr any, variables map[string]string) string {
 	switch e := expr.(type) {
 	case Num:
 		return strconv.Itoa(e.Value);
+	case Str:
+		return e.Value
 	case Var:
 		return variables[e.Name]
 	case Add:
@@ -275,7 +303,7 @@ func eval_expr(expr any, variables map[string]string) string {
 		right, _ := strconv.Atoi(eval_expr(e.Right, variables))
 		return strconv.Itoa(left * right)
 	default:
-		log.Fatalf("Unknown expression %s", expr)
+		log.Fatalf("Unknown expression %s of type %s", expr, reflect.TypeOf(expr).String())
 	}
 	return ""
 }
@@ -290,6 +318,8 @@ func run_program(source string) {
 }
 
 func main() {
+	fmt.Print("YZ interpeter Output:\n\n")
+
 	data, err := os.ReadFile("examples/1.yz")
 	if err != nil {
 		log.Fatal(err)

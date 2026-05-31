@@ -1,4 +1,6 @@
 let x = 5;
+let f = "ffafafkihujyfdersrfedui";
+println(f);
 println(x);
 let y = x + 6 * 4;
 println(y);
