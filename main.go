@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
+	"strconv"
 	"unicode"
 )
 
@@ -51,6 +53,7 @@ type Print struct {
 
 type Program struct {
 	statements []any
+	variables map[string]string
 }
 
 // Tokenizer
@@ -122,6 +125,170 @@ func lexer(src string) []Token {
 	return tokens
 }
 
+// Parser
+
+type Parser struct {
+	tokens []Token
+	pos    int
+}
+
+func new_parser(tokens []Token) *Parser {
+	return &Parser{tokens: tokens, pos: 0}
+}
+
+func (p *Parser) cur() Token {
+	return p.tokens[p.pos]
+}
+
+func (p *Parser) eat(typ string) Token {
+	if p.cur().Type != typ {
+		log.Fatalf("Expected %s, got %s %s.", typ, p.cur().Type, p.cur().Value)
+	}
+	tok := p.cur()
+	p.pos += 1
+	return tok
+}
+
+func (p *Parser) parse() Program {
+	stmts := []any{}
+	for p.cur().Type != "EOF" {
+		stmts = append(stmts, p.statement())
+	}
+	return Program{stmts, make(map[string]string)}
+}
+
+func (p *Parser) statement() any {
+	if p.cur().Type == "LET" {
+		return p.let_statement()
+	} else if p.cur().Type == "PRINTLN" {
+		return p.println_statement()
+	} else {
+		log.Fatalf("Unexpected statement token: %s", p.cur().Type)
+		os.Exit(0)
+		return 0
+	}
+}
+
+func (p *Parser) let_statement() Let {
+	p.eat("LET")
+	name := p.eat("IDENT").Value
+	p.eat("EQUAL")
+	value := p.expr()
+	p.eat("SEMI")
+	return Let{name, value}
+}
+
+func (p *Parser) println_statement() Print {
+	p.eat("PRINTLN")
+	p.eat("LPAREN")
+	expr := p.expr()
+	p.eat("RPAREN")
+	p.eat("SEMI")
+	return Print{expr}
+}
+
+func (p *Parser) expr() any {
+	return p.add_expr()
+}
+
+func (p *Parser) add_expr() any {
+	node := p.mul_expr()
+	for p.cur().Type == "PLUS" || p.cur().Type == "MINUS" {
+		operator := p.cur().Type
+		p.eat(operator)
+		right := p.mul_expr()
+		if operator == "PLUS" {
+			node = Add{node, right}
+		} else {
+			node = Sub{node, right}
+		}
+	}
+	return node;
+}
+
+func (p *Parser) mul_expr() any {
+	node := p.primary()
+	for p.cur().Type == "MUL" {
+		p.eat("MUL")
+		right := p.primary()
+		node = Mul{node, right}
+	}
+	return node;
+}
+
+func (p *Parser) primary() any {
+	tok := p.cur()
+
+	if tok.Type == "NUMBER" {
+		p.eat("NUMBER")
+		val, _ := strconv.Atoi(tok.Value)
+		return Num{val}
+	} else if tok.Type == "IDENT" {
+		p.eat("IDENT")
+		return Var{tok.Value}
+	} else if tok.Type == "LPAREN" {
+		p.eat("LPAREN")
+		node := p.expr()
+		p.eat("RPAREN")
+		return node
+	} else {
+		log.Fatalf("Unexpected token in primary (%s, %s)", tok.Type, tok.Value)
+		return 0
+	}
+}
+
+func run(program *Program) {
+	for _, stmt := range program.statements {
+		run_statement(stmt, program.variables)
+	}
+}
+
+func run_statement(stmt any, variables map[string]string) {
+	switch s := stmt.(type) {
+	case Let:
+		value := eval_expr(s.Value, variables)
+		variables[s.Name] = value
+	case Print:
+		value := eval_expr(s.Expr, variables)
+		fmt.Println(value)
+	default:
+		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
+	}
+}
+
+func eval_expr(expr any, variables map[string]string) string {
+	switch e := expr.(type) {
+	case Num:
+		return strconv.Itoa(e.Value);
+	case Var:
+		return variables[e.Name]
+	case Add:
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables))
+		return strconv.Itoa(left + right)
+	case Sub:
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables))
+		return strconv.Itoa(left - right)
+	case Mul:
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables))
+		return strconv.Itoa(left * right)
+	default:
+		log.Fatalf("Unknown expression %s", expr)
+	}
+	return ""
+}
+
+// Main
+
+func run_program(source string) {
+	tokens := lexer(source)
+	parser := new_parser(tokens)
+	program := parser.parse()
+	run(&program)
+}
+
 func main() {
 	data, err := os.ReadFile("examples/1.yz")
 	if err != nil {
@@ -130,5 +297,5 @@ func main() {
 
 	content := string(data)
 
-	fmt.Println(lexer(content))
+	run_program(content)
 }

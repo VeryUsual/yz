@@ -1,6 +1,6 @@
 let x = 5;
 println(x);
-let y = x + 6;
+let y = x + 6 * 4;
 println(y);
-let z = y * 44;
+let z = y * 44 + 3;
 println(z);
