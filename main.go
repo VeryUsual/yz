@@ -22,7 +22,7 @@ type Num struct {
 }
 
 type Var struct {
-	Name  string
+	Name string
 }
 
 type Add struct {
@@ -46,7 +46,7 @@ type Let struct {
 }
 
 type Print struct {
-	Expr  any
+	Expr any
 }
 
 type Program struct {
@@ -69,23 +69,24 @@ func lexer(src string) []Token {
 		if c == ' ' {
 			i += 1
 		} else if unicode.IsDigit(rune(c)) {
-			var j = i;
+			var j = i
 			for j < len(src) && unicode.IsDigit(rune(src[j])) {
-				j += 1;
+				j += 1
 			}
 			tokens = append(tokens, Token{"NUMBER", src[i:j]})
 			i = j
 		} else if unicode.IsLetter(rune(c)) || c == '_' {
-			var j = i;
+			var j = i
 			for j < len(src) && (unicode.IsLetter(rune(src[j])) || unicode.IsDigit(rune(src[j])) || src[j] == '_') {
-				j += 1;
+				j += 1
 			}
 			var word = src[i:j]
-			if word == "let" {
+			switch word {
+			case "let":
 				tokens = append(tokens, Token{"LET", word})
-			} else if word == "println" {
+			case "println":
 				tokens = append(tokens, Token{"PRINTLN", word})
-			} else {
+			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
 			i = j
@@ -114,11 +115,11 @@ func lexer(src string) []Token {
 			log.Fatalf("SyntaxError: Unexpected character: %s", string(c))
 			os.Exit(0)
 		}
-	}	
+	}
 
 	tokens = append(tokens, Token{"EOF", ""})
 
-	return tokens;
+	return tokens
 }
 
 func main() {
