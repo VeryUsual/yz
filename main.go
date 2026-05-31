@@ -66,7 +66,7 @@ func lexer(src string) []Token {
 
 	for i < len(src) {
 		var c = src[i]
-		if c == ' ' {
+		if unicode.IsSpace(rune(c)) {
 			i += 1
 		} else if unicode.IsDigit(rune(c)) {
 			var j = i
@@ -123,5 +123,12 @@ func lexer(src string) []Token {
 }
 
 func main() {
-	fmt.Println(lexer("println(5);"))
+	data, err := os.ReadFile("examples/1.yz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	content := string(data)
+
+	fmt.Println(lexer(content))
 }
