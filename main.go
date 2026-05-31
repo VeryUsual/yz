@@ -9,6 +9,7 @@ package main
 // Imports
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -55,6 +56,12 @@ type Print struct {
 	Expr any
 }
 
+type IfStmt struct {
+	Condition any
+	Then      []any
+	Else      []any
+}
+
 type Program struct {
 	statements []any
 	variables map[string]string
@@ -67,7 +74,7 @@ type Token struct {
 	Value string
 }
 
-func lexer(src string) []Token {
+func lexer(src string, verbose *bool) []Token {
 	var i int = 0
 	var tokens []Token = []Token{}
 
@@ -94,6 +101,8 @@ func lexer(src string) []Token {
 				tokens = append(tokens, Token{"LET", word})
 			case "println":
 				tokens = append(tokens, Token{"PRINTLN", word})
+			case "if":
+				tokens = append(tokens, Token{"IF", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -107,6 +116,9 @@ func lexer(src string) []Token {
 		} else if c == '*' {
 			tokens = append(tokens, Token{"MUL", string(c)})
 			i += 1
+		} else if c == '=' && src[i+1] == '=' {
+			tokens = append(tokens, Token{"DOUBLE_EQUAL", string(src[i:i+1])})
+			i += 2
 		} else if c == '=' {
 			tokens = append(tokens, Token{"EQUAL", string(c)})
 			i += 1
@@ -129,6 +141,12 @@ func lexer(src string) []Token {
 			tokens = append(tokens, Token{"STR", src[i:j]})
 			tokens = append(tokens, Token{"QUOTE", "\""})
 			i = j + 1
+		} else if c == '{' {
+			tokens = append(tokens, Token{"LBRACE", string(c)})
+			i += 1
+		} else if c == '}' {
+			tokens = append(tokens, Token{"RBRACE", string(c)})
+			i += 1
 		} else {
 			log.Fatalf("SyntaxError: Unexpected character: %s", string(c))
 			os.Exit(0)
@@ -137,7 +155,9 @@ func lexer(src string) []Token {
 
 	tokens = append(tokens, Token{"EOF", ""})
 
-	//fmt.Println("Lexer Tokens:", tokens)
+	if *verbose {
+		fmt.Println("Lexer Tokens:", tokens)
+	}
 
 	return tokens
 }
@@ -166,6 +186,15 @@ func (p *Parser) eat(typ string) Token {
 	return tok
 }
 
+func (p *Parser) eat_until(typ string) []Token {
+	tokens := []Token{}
+	for p.cur().Type != typ {
+		tokens = append(tokens, p.cur())
+		p.pos += 1
+	}
+	return tokens
+}
+
 func (p *Parser) parse() Program {
 	stmts := []any{}
 	for p.cur().Type != "EOF" {
@@ -179,6 +208,8 @@ func (p *Parser) statement() any {
 		return p.let_statement()
 	} else if p.cur().Type == "PRINTLN" {
 		return p.println_statement()
+	} else if p.cur().Type == "IF" {
+		return p.if_statement()
 	} else {
 		log.Fatalf("Unexpected statement token: %s", p.cur().Type)
 		os.Exit(0)
@@ -204,7 +235,28 @@ func (p *Parser) println_statement() Print {
 	return Print{expr}
 }
 
+func (p *Parser) if_statement() IfStmt {
+	p.eat("IF")
+	expr1 := p.expr()
+	p.eat("DOUBLE_EQUAL")
+	expr2 := p.expr()
+	p.eat("LBRACE")
+	thenStmts := []any{}
+	for p.cur().Type != "RBRACE" {
+		thenStmts = append(thenStmts, p.statement())
+	}
+	p.eat("RBRACE")
+	return IfStmt{expr1 == expr2, thenStmts, []any{}}
+}
+
 func (p *Parser) expr() any {
+	if p.cur().Type == "QUOTE" {
+		p.eat("QUOTE")
+		str := p.eat("STR").Value
+		p.eat("QUOTE")
+		return Str{str}
+	}
+
 	return p.add_expr()
 }
 
@@ -277,6 +329,12 @@ func run_statement(stmt any, variables map[string]string) {
 	case Print:
 		value := eval_expr(s.Expr, variables)
 		fmt.Println(value)
+	case IfStmt:
+		if s.Condition == true {
+			for _, thenStmt := range s.Then {
+				run_statement(thenStmt, variables)
+			}	
+		}
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
 	}
@@ -310,14 +368,17 @@ func eval_expr(expr any, variables map[string]string) string {
 
 // Main
 
-func run_program(source string) {
-	tokens := lexer(source)
+func run_program(source string, verbose *bool) {
+	tokens := lexer(source, verbose)
 	parser := new_parser(tokens)
 	program := parser.parse()
 	run(&program)
 }
 
 func main() {
+	verbose := flag.Bool("v", false, "Verbose mode enabled? (true or false) (not required)")
+	flag.Parse()
+
 	fmt.Print("YZ interpeter Output:\n\n")
 
 	data, err := os.ReadFile("examples/1.yz")
@@ -327,5 +388,5 @@ func main() {
 
 	content := string(data)
 
-	run_program(content)
+	run_program(content, verbose)
 }
