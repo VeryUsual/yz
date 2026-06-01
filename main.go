@@ -186,15 +186,6 @@ func (p *Parser) eat(typ string) Token {
 	return tok
 }
 
-func (p *Parser) eat_until(typ string) []Token {
-	tokens := []Token{}
-	for p.cur().Type != typ {
-		tokens = append(tokens, p.cur())
-		p.pos += 1
-	}
-	return tokens
-}
-
 func (p *Parser) parse() Program {
 	stmts := []any{}
 	for p.cur().Type != "EOF" {
@@ -288,30 +279,31 @@ func (p *Parser) mul_expr() any {
 func (p *Parser) primary() any {
 	tok := p.cur()
 
-	if tok.Type == "NUMBER" {
-		p.eat("NUMBER")
-		val, _ := strconv.Atoi(tok.Value)
-		return Num{val}
-	} else if tok.Type == "IDENT" {
-		p.eat("IDENT")
-		return Var{tok.Value}
-	} else if tok.Type == "LPAREN" {
-		p.eat("LPAREN")
-		node := p.expr()
-		p.eat("RPAREN")
-		return node
-	} else if tok.Type == "QUOTE" {
-		value := ""
-		p.eat("QUOTE")
-		if p.cur().Type == "STR" {
-			value = p.cur().Value
-		}
-		p.eat("STR")
-		p.eat("QUOTE")
-		return Str{value}
-	} else {
-		log.Fatalf("Unexpected token in primary (%s, %s)", tok.Type, tok.Value)
-		return 0
+	switch tok.Type {
+		case "NUMBER":
+			p.eat("NUMBER")
+			val, _ := strconv.Atoi(tok.Value)
+			return Num{val}
+		case "IDENT":
+			p.eat("IDENT")
+			return Var{tok.Value}
+		case "LPAREN":
+			p.eat("LPAREN")
+			node := p.expr()
+			p.eat("RPAREN")
+			return node
+		case "QUOTE":
+			value := ""
+			p.eat("QUOTE")
+			if p.cur().Type == "STR" {
+				value = p.cur().Value
+			}
+			p.eat("STR")
+			p.eat("QUOTE")
+			return Str{value}
+		default:
+			log.Fatalf("Unexpected token in primary (%s, %s)", tok.Type, tok.Value)
+			return 0
 	}
 }
 
