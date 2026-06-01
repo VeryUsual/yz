@@ -1,4 +1,4 @@
-let x = 5;
+let x = -5;
 let f = "ffafafkihujyfdersrfedui";
 if x == f {
     println("x equals f (impossible)");

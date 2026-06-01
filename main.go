@@ -83,8 +83,13 @@ func lexer(src string, verbose *bool) []Token {
 
 		if unicode.IsSpace(rune(c)) {
 			i += 1
-		} else if unicode.IsDigit(rune(c)) {
+		} else if unicode.IsDigit(rune(c)) || (c == '-' && unicode.IsDigit(rune(src[i+1]))) {
 			var j = i
+			
+			if c == '-' && unicode.IsDigit(rune(src[i+1])) {
+				j += 1
+			}
+
 			for j < len(src) && unicode.IsDigit(rune(src[j])) {
 				j += 1
 			}
@@ -149,7 +154,6 @@ func lexer(src string, verbose *bool) []Token {
 			i += 1
 		} else {
 			log.Fatalf("SyntaxError: Unexpected character: %s", string(c))
-			os.Exit(0)
 		}
 	}
 
