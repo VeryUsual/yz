@@ -1,7 +1,8 @@
+// SPDX-FileCopyrightText: 2026 ark
+// SPDX-License-Identifier: GPL-3.0-or-later
 //
 // The YZ Interpreter
-// Licensed under the GPL v3.0
-//
+// Licensed under the GNU General Public License v3.0
 //
 
 package main
@@ -62,9 +63,21 @@ type IfStmt struct {
 	Else      []any
 }
 
+type Function struct {
+	Name       string
+	Parameters []any
+	Contents   []any
+}
+
+type FuncCallStatement struct {
+	Name       string
+	Parameters []any
+}
+
 type Program struct {
 	statements []any
 	variables map[string]string
+	functions map[string][]any
 }
 
 // Tokenizer
@@ -108,6 +121,8 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"PRINTLN", word})
 			case "if":
 				tokens = append(tokens, Token{"IF", word})
+			case "func":
+				tokens = append(tokens, Token{"FUNC", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -146,6 +161,9 @@ func lexer(src string, verbose *bool) []Token {
 			tokens = append(tokens, Token{"STR", src[i:j]})
 			tokens = append(tokens, Token{"QUOTE", "\""})
 			i = j + 1
+		} else if c == ',' {
+			tokens = append(tokens, Token{"COMMA", string(c)})
+			i += 1
 		} else if c == '{' {
 			tokens = append(tokens, Token{"LBRACE", string(c)})
 			i += 1
@@ -181,6 +199,10 @@ func (p *Parser) cur() Token {
 	return p.tokens[p.pos]
 }
 
+func (p *Parser) peek_next() Token {
+	return p.tokens[p.pos+1]
+}
+
 func (p *Parser) eat(typ string) Token {
 	if p.cur().Type != typ {
 		log.Fatalf("Expected %s, got %s %s.", typ, p.cur().Type, p.cur().Value)
@@ -195,7 +217,7 @@ func (p *Parser) parse() Program {
 	for p.cur().Type != "EOF" {
 		stmts = append(stmts, p.statement())
 	}
-	return Program{stmts, make(map[string]string)}
+	return Program{stmts, make(map[string]string), make(map[string][]any)}
 }
 
 func (p *Parser) statement() any {
@@ -205,6 +227,10 @@ func (p *Parser) statement() any {
 		return p.println_statement()
 	} else if p.cur().Type == "IF" {
 		return p.if_statement()
+	} else if p.cur().Type == "FUNC" {
+		return p.func_statement()
+	} else if p.cur().Type == "IDENT" {
+		return p.func_call_statement()
 	} else {
 		log.Fatalf("Unexpected statement token: %s", p.cur().Type)
 		os.Exit(0)
@@ -242,6 +268,35 @@ func (p *Parser) if_statement() IfStmt {
 	}
 	p.eat("RBRACE")
 	return IfStmt{expr1 == expr2, thenStmts, []any{}}
+}
+
+func (p *Parser) func_statement() Function {
+	p.eat("FUNC")
+	name := p.eat("IDENT").Value
+	p.eat("LPAREN")
+	for p.cur().Type != "RPAREN" {
+		p.eat("IDENT")
+		if p.cur().Type != "RPAREN" {
+			p.eat("COMMA")
+		}
+	}
+	p.eat("RPAREN")
+	p.eat("LBRACE")
+	funcStmts := []any{}
+	for p.cur().Type != "RBRACE" {
+		funcStmts = append(funcStmts, p.statement())
+	}
+	p.eat("RBRACE")
+	return Function{name, []any{}, funcStmts}
+}
+
+func (p *Parser) func_call_statement() FuncCallStatement {
+	name := p.eat("IDENT").Value
+	p.eat("LPAREN");
+	// TODO
+	p.eat("RPAREN");
+	p.eat("SEMI");
+	return FuncCallStatement{name, []any{}}
 }
 
 func (p *Parser) expr() any {
@@ -313,30 +368,40 @@ func (p *Parser) primary() any {
 
 func run(program *Program) {
 	for _, stmt := range program.statements {
-		run_statement(stmt, program.variables)
+		run_statement(stmt, program.variables, program.functions)
 	}
 }
 
-func run_statement(stmt any, variables map[string]string) {
+func run_statement(stmt any, variables map[string]string, functions map[string][]any) {
 	switch s := stmt.(type) {
 	case Let:
-		value := eval_expr(s.Value, variables)
+		value := eval_expr(s.Value, variables, functions)
 		variables[s.Name] = value
 	case Print:
-		value := eval_expr(s.Expr, variables)
+		value := eval_expr(s.Expr, variables, functions)
 		fmt.Println(value)
 	case IfStmt:
 		if s.Condition == true {
 			for _, thenStmt := range s.Then {
-				run_statement(thenStmt, variables)
+				run_statement(thenStmt, variables, functions)
 			}	
+		}
+	case Function:
+		functions[s.Name] = s.Contents
+	case FuncCallStatement:
+		if _, exists := functions[s.Name]; exists {
+			for _, stmt := range functions[s.Name] {
+				run_statement(stmt, variables, functions)
+			}
+		} else {
+			log.Fatalf("Call to non-existant function %s.", s.Name)
 		}
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
 	}
 }
 
-func eval_expr(expr any, variables map[string]string) string {
+func eval_expr(expr any, variables map[string]string, functions map[string][]any) string {
 	switch e := expr.(type) {
 	case Num:
 		return strconv.Itoa(e.Value);
@@ -345,16 +410,16 @@ func eval_expr(expr any, variables map[string]string) string {
 	case Var:
 		return variables[e.Name]
 	case Add:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables))
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
 		return strconv.Itoa(left + right)
 	case Sub:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables))
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
 		return strconv.Itoa(left - right)
 	case Mul:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables))
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
 		return strconv.Itoa(left * right)
 	default:
 		log.Fatalf("Unknown expression %s of type %s", expr, reflect.TypeOf(expr).String())

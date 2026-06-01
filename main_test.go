@@ -26,7 +26,18 @@ func TestMain(t *testing.T) {
 			println("x equals x");
 		}
 
+		func two() {
+			println("2");
+		}
+
+		func one() {
+			println("1");
+		}
+
+		one();
+		two();
+
 		`, &verbose)
 	})
-	assert.Equal(t, strings.TrimSpace(out), "203\nHello, world!\nx equals x")
+	assert.Equal(t, strings.TrimSpace(out), "203\nHello, world!\nx equals x\n1\n2")
 }

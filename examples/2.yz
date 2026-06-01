@@ -1,0 +1,21 @@
+import example;
+
+example.example(4, 9);
+
+let x = "32";
+x = int(x);
+
+func main(param, other_param) {
+    println(x);
+
+    let i = 0;
+    while i < 20 {
+        println(i);
+        i++;
+    }
+
+    return i;
+}
+
+let y = main(5, "32");
+println(y);
