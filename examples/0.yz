@@ -34,3 +34,5 @@ if 4 <= 4 {
 if 3 < 7 {
     println("3 < 7");
 }
+
+println("{{3+4}} {{7*3}} {{add(first_number 4, second_number 4)}}");

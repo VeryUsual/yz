@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"unicode"
 )
@@ -618,12 +619,30 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 	}
 }
 
+func eval_random_expr(s string, variables map[string]string, functions map[string]Function) string {
+	verbose := false
+	tokens := lexer(s, &verbose)
+    parser := new_parser(tokens)
+    expr := parser.expr()
+    return eval_expr(expr, variables, functions)
+}
+
 func eval_expr(expr any, variables map[string]string, functions map[string]Function) string {
 	switch e := expr.(type) {
 	case Num:
 		return strconv.Itoa(e.Value)
 	case Str:
-		return e.Value
+		re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
+		string_value := re.ReplaceAllStringFunc(e.Value, func(match string) string {
+			submatches := re.FindStringSubmatch(match)
+			if len(submatches) > 1 {
+				return eval_random_expr(submatches[1], variables, functions) // second value of submatches is the content inside of the braces
+			}
+			return match
+		})
+
+		return string_value
 	case Var:
 		if _, ok := variables[e.Name]; ok {
 			return variables[e.Name]
