@@ -1,8 +1,10 @@
+// add function - adds 2 numbers
 func add(first_number, second_number) {
     let result = first_number + second_number;
     return result;
 }
 
+// main
 println("FOUR PLUS FOUR");
 let x = add(first_number 4, second_number 4);
 println("IS:");

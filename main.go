@@ -167,7 +167,7 @@ func lexer(src string, verbose *bool) []Token {
 			i += 1
 			var j = i
 			for j < len(src) && src[j] != '"' {
-				j += 1;
+				j += 1
 			}
 			tokens = append(tokens, Token{"STR", src[i:j]})
 			tokens = append(tokens, Token{"QUOTE", "\""})
@@ -184,6 +184,10 @@ func lexer(src string, verbose *bool) []Token {
 		} else if c == '#' {
 			tokens = append(tokens, Token{"HASH", string(c)})
 			i += 1
+		} else if c == '/' && i+1 < len(src) && src[i+1] == '/' {
+			for i < len(src) && src[i] != '\n' {
+				i += 1
+			}
 		} else {
 			log.Fatalf("SyntaxError: Unexpected character: %s", string(c))
 		}
@@ -341,8 +345,8 @@ func (p *Parser) func_call_statement() FuncCallStatement {
 			p.eat("COMMA")
 		}
 	}
-	p.eat("RPAREN");
-	p.eat("SEMI");
+	p.eat("RPAREN")
+	p.eat("SEMI")
 	return FuncCallStatement{func_name, args}
 }
 
@@ -393,7 +397,7 @@ func (p *Parser) add_expr() any {
 			node = Sub{node, right}
 		}
 	}
-	return node;
+	return node
 }
 
 func (p *Parser) mul_expr() any {
@@ -403,7 +407,7 @@ func (p *Parser) mul_expr() any {
 		right := p.primary()
 		node = Mul{node, right}
 	}
-	return node;
+	return node
 }
 
 func func_call_and_return(call FuncCallExpr, variables map[string]string, functions map[string]Function) string {
@@ -515,7 +519,7 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 					if functions[s.Name].Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
 						func_vars[param] = eval_expr(param_value, variables, functions)
 					} else {
-						log.Fatalf("Call to function %s failed due to non-existant parameter %s without _yz_arbitrary_params_allowed_ flag.", param, s.Name)
+						log.Fatalf("Call to function %s failed due to non-existent parameter %s without _yz_arbitrary_params_allowed_ flag.", param, s.Name)
 					}
 				}
 			}
@@ -532,7 +536,7 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 				run_statement(stmt, func_vars, functions)
 			}
 		} else {
-			log.Fatalf("Call to non-existant function %s.", s.Name)
+			log.Fatalf("Call to non-existent function %s.", s.Name)
 		}
 		return ""
 	case Return:
@@ -546,14 +550,14 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 func eval_expr(expr any, variables map[string]string, functions map[string]Function) string {
 	switch e := expr.(type) {
 	case Num:
-		return strconv.Itoa(e.Value);
+		return strconv.Itoa(e.Value)
 	case Str:
 		return e.Value
 	case Var:
 		if _, ok := variables[e.Name]; ok {
 			return variables[e.Name]
 		} else {
-			log.Fatalf("Reference of non-existant variable %s", e.Name)
+			log.Fatalf("Reference of non-existent variable %s", e.Name)
 		}
 	case Add:
 		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))

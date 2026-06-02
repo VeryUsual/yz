@@ -37,7 +37,23 @@ func TestMain(t *testing.T) {
 		one();
 		two();
 
+
+		// add function - adds 2 numbers
+		func add(first_number, second_number) {
+			let result = first_number + second_number;
+			return result;
+		}
+
+		let x = add(first_number 4, second_number 4);
+		println("Four plus four is:");
+		println(x);
+
+		func sub(#arbitrary_params_allowed) {
+			return first - second;
+		}
+		println(sub(first 4, second 4));
+
 		`, &verbose)
 	})
-	assert.Equal(t, strings.TrimSpace(out), "203\nHello, world!\nx equals x\n1\n2")
+	assert.Equal(t, strings.TrimSpace(out), "203\nHello, world!\nx equals x\n1\n2\nFour plus four is:\n8\n0")
 }
