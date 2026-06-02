@@ -65,13 +65,13 @@ type IfStmt struct {
 
 type Function struct {
 	Name       string
-	Parameters []any
+	Parameters map[string]string
 	Contents   []any
 }
 
 type FuncCallStatement struct {
 	Name       string
-	Parameters []any
+	Parameters map[string]string
 }
 
 type Program struct {
@@ -271,11 +271,13 @@ func (p *Parser) if_statement() IfStmt {
 }
 
 func (p *Parser) func_statement() Function {
+	args := map[string]string{}
+
 	p.eat("FUNC")
 	name := p.eat("IDENT").Value
 	p.eat("LPAREN")
 	for p.cur().Type != "RPAREN" {
-		p.eat("IDENT")
+		args[p.eat("IDENT").Value] = "null"
 		if p.cur().Type != "RPAREN" {
 			p.eat("COMMA")
 		}
@@ -287,16 +289,25 @@ func (p *Parser) func_statement() Function {
 		funcStmts = append(funcStmts, p.statement())
 	}
 	p.eat("RBRACE")
-	return Function{name, []any{}, funcStmts}
+	return Function{name, args, funcStmts}
 }
 
 func (p *Parser) func_call_statement() FuncCallStatement {
-	name := p.eat("IDENT").Value
+	args := map[string]string{}
+	func_name := p.eat("IDENT").Value
 	p.eat("LPAREN");
-	// TODO
+	for p.cur().Type != "RPAREN" {
+		param_name := p.eat("IDENT").Value;
+		if p.cur().Type == "NUMBER" || p.cur().Type == "STR" {
+			args[param_name] = p.eat(p.cur().Type).Value
+			if p.cur().Type != "RPAREN" {
+				p.eat("COMMA")
+			}
+		}
+	}
 	p.eat("RPAREN");
 	p.eat("SEMI");
-	return FuncCallStatement{name, []any{}}
+	return FuncCallStatement{func_name, args}
 }
 
 func (p *Parser) expr() any {
@@ -390,6 +401,11 @@ func run_statement(stmt any, variables map[string]string, functions map[string][
 		functions[s.Name] = s.Contents
 	case FuncCallStatement:
 		if _, exists := functions[s.Name]; exists {
+			variables_and_param_values := variables
+			for name, value := range s.Parameters {
+				variables_and_param_values[name] = value
+			}
+
 			for _, stmt := range functions[s.Name] {
 				run_statement(stmt, variables, functions)
 			}

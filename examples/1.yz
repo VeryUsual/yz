@@ -2,7 +2,9 @@ let x = -5;
 let f = "ffafafkihujyfdersrfedui";
 
 func main(param, other_param) {
-    println("inside the function!");
+    println(param);
+    println(other_param);
+    println(fake_param);
 }
 
 func other() {
@@ -24,4 +26,4 @@ let z = y * 44 + 3;
 println(z);
 
 other();
-main();
+main(param 4, other_param 3, fake_param 99);
