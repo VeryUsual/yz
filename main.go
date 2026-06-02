@@ -77,7 +77,7 @@ type FuncCallStatement struct {
 type Program struct {
 	statements []any
 	variables map[string]string
-	functions map[string][]any
+	functions map[string]Function
 }
 
 // Tokenizer
@@ -170,6 +170,9 @@ func lexer(src string, verbose *bool) []Token {
 		} else if c == '}' {
 			tokens = append(tokens, Token{"RBRACE", string(c)})
 			i += 1
+		} else if c == '#' {
+			tokens = append(tokens, Token{"HASH", string(c)})
+			i += 1
 		} else {
 			log.Fatalf("SyntaxError: Unexpected character: %s", string(c))
 		}
@@ -217,7 +220,7 @@ func (p *Parser) parse() Program {
 	for p.cur().Type != "EOF" {
 		stmts = append(stmts, p.statement())
 	}
-	return Program{stmts, make(map[string]string), make(map[string][]any)}
+	return Program{stmts, make(map[string]string), make(map[string]Function)}
 }
 
 func (p *Parser) statement() any {
@@ -277,9 +280,27 @@ func (p *Parser) func_statement() Function {
 	name := p.eat("IDENT").Value
 	p.eat("LPAREN")
 	for p.cur().Type != "RPAREN" {
-		args[p.eat("IDENT").Value] = "null"
-		if p.cur().Type != "RPAREN" {
-			p.eat("COMMA")
+		if p.cur().Type == "HASH" {
+
+			if p.peek_next().Type == "IDENT" {
+				p.eat("HASH")
+				if p.eat("IDENT").Value == "arbitrary_params_allowed" {
+					args["_arbitrary_params_allowed_"] = "YES"
+				} else {
+					log.Fatalf("Unknown hash parameter on function %s.", name)
+				}
+				if p.cur().Type != "RPAREN" {
+					p.eat("COMMA")
+				}
+			}
+
+		} else {
+
+			args[p.eat("IDENT").Value] = "null"
+			if p.cur().Type != "RPAREN" {
+				p.eat("COMMA")
+			}
+
 		}
 	}
 	p.eat("RPAREN")
@@ -383,7 +404,7 @@ func run(program *Program) {
 	}
 }
 
-func run_statement(stmt any, variables map[string]string, functions map[string][]any) {
+func run_statement(stmt any, variables map[string]string, functions map[string]Function) {
 	switch s := stmt.(type) {
 	case Let:
 		value := eval_expr(s.Value, variables, functions)
@@ -398,15 +419,26 @@ func run_statement(stmt any, variables map[string]string, functions map[string][
 			}	
 		}
 	case Function:
-		functions[s.Name] = s.Contents
+		functions[s.Name] = s
 	case FuncCallStatement:
 		if _, exists := functions[s.Name]; exists {
 			variables_and_param_values := variables
-			for name, value := range s.Parameters {
-				variables_and_param_values[name] = value
+
+			if functions[s.Name].Parameters["_arbitrary_params_allowed_"] == "YES" {
+				for name, value := range s.Parameters {
+					variables_and_param_values[name] = value
+				}
+			} else {
+				for name, value := range s.Parameters {
+					if _, ok := functions[s.Name].Parameters[name]; ok {
+						variables_and_param_values[name] = value
+					} else {
+						log.Fatalf("Call to function %s failed due to non-existant parameter %s without _arbitrary_params_allowed_ flag.", s.Name, name)
+					}
+				}
 			}
 
-			for _, stmt := range functions[s.Name] {
+			for _, stmt := range functions[s.Name].Contents {
 				run_statement(stmt, variables, functions)
 			}
 		} else {
@@ -417,7 +449,7 @@ func run_statement(stmt any, variables map[string]string, functions map[string][
 	}
 }
 
-func eval_expr(expr any, variables map[string]string, functions map[string][]any) string {
+func eval_expr(expr any, variables map[string]string, functions map[string]Function) string {
 	switch e := expr.(type) {
 	case Num:
 		return strconv.Itoa(e.Value);

@@ -1,7 +1,7 @@
 let x = -5;
 let f = "ffafafkihujyfdersrfedui";
 
-func main(param, other_param) {
+func main(param, other_param, #arbitrary_params_allowed) {
     println(param);
     println(other_param);
     println(fake_param);
