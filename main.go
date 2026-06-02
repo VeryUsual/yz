@@ -150,6 +150,22 @@ func lexer(src string, verbose *bool) []Token {
 		} else if c == '=' && src[i+1] == '=' {
 			tokens = append(tokens, Token{"DOUBLE_EQUAL", string(src[i:i+1])})
 			i += 2
+		} else if c == '>' {
+			if src[i+1] == '=' {
+				tokens = append(tokens, Token{"GREATER_EQUAL", string(src[i:i+1])})
+				i += 2
+			} else {
+				tokens = append(tokens, Token{"GREATER", string(c)})
+				i += 1
+			}
+		} else if c == '<' {
+			if src[i+1] == '=' {
+				tokens = append(tokens, Token{"LESS_THAN_EQUAL", string(src[i:i+1])})
+				i += 2
+			} else {
+				tokens = append(tokens, Token{"LESS_THAN", string(c)})
+				i += 1
+			}
 		} else if c == '=' {
 			tokens = append(tokens, Token{"EQUAL", string(c)})
 			i += 1
@@ -282,16 +298,71 @@ func (p *Parser) println_statement() Print {
 
 func (p *Parser) if_statement() IfStmt {
 	p.eat("IF")
-	expr1 := p.expr()
-	p.eat("DOUBLE_EQUAL")
-	expr2 := p.expr()
+	expr1 := eval_expr(p.expr(), make(map[string]string), make(map[string]Function))
+	comparison_operator := Token{"null", "null"}
+	switch p.cur().Type {
+	case "DOUBLE_EQUAL", "LESS_THAN_EQUAL", "LESS_THAN", "GREATER_EQUAL", "GREATER":
+		comparison_operator = p.eat(p.cur().Type)
+	default:
+		log.Fatalf("%s is not a comparison operator", p.cur().Type)
+	}
+	expr2 := eval_expr(p.expr(), make(map[string]string), make(map[string]Function))
 	p.eat("LBRACE")
+
+	condition := false
+	switch comparison_operator.Type {
+	case "DOUBLE_EQUAL":
+		condition = expr1 == expr2
+	case "LESS_THAN_EQUAL":
+		if e1, err := strconv.Atoi(expr1); err == nil {
+			if e2, err := strconv.Atoi(expr2); err == nil {
+				condition = e1 <= e2
+			} else {
+				log.Fatalf("2nd expression in operation not a number.")
+			}
+		} else {
+			log.Fatalf("1st expression in operation not a number.")
+		}
+	case "GREATER_EQUAL":
+		if e1, err := strconv.Atoi(expr1); err == nil {
+			if e2, err := strconv.Atoi(expr2); err == nil {
+				condition = e1 >= e2
+			} else {
+				log.Fatalf("2nd expression in operation not a number.")
+			}
+		} else {
+			log.Fatalf("1st expression in operation not a number.")
+		}
+	case "LESS_THAN":
+		if e1, err := strconv.Atoi(expr1); err == nil {
+			if e2, err := strconv.Atoi(expr2); err == nil {
+				condition = e1 < e2
+			} else {
+				log.Fatalf("2nd expression in operation not a number.")
+			}
+		} else {
+			log.Fatalf("1st expression in operation not a number.")
+		}
+	case "GREATER":
+		if e1, err := strconv.Atoi(expr1); err == nil {
+			if e2, err := strconv.Atoi(expr2); err == nil {
+				condition = e1 > e2
+			} else {
+				log.Fatalf("2nd expression in operation not a number.")
+			}
+		} else {
+			log.Fatalf("1st expression in operation not a number.")
+		}
+	default:
+		log.Fatalf("%s is not a comparison operator", p.cur().Type)
+	}
+
 	thenStmts := []any{}
 	for p.cur().Type != "RBRACE" {
 		thenStmts = append(thenStmts, p.statement())
 	}
 	p.eat("RBRACE")
-	return IfStmt{expr1 == expr2, thenStmts, []any{}}
+	return IfStmt{condition, thenStmts, []any{}}
 }
 
 func (p *Parser) func_statement() Function {

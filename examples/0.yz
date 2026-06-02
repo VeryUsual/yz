@@ -10,3 +10,27 @@ let x = add(first_number 4, second_number 4);
 println("IS:");
 println(x);
 println("---");
+
+if 4 > 6 {
+    println("impossible");
+}
+
+if 4 == 4 {
+    println("4 == 4");
+}
+
+if 5 > 1 {
+    println("5 > 1");
+}
+
+if 5 >= 5 {
+    println("5 >= 5");
+}
+
+if 4 <= 4 {
+    println("4 <= 4");
+}
+
+if 3 < 7 {
+    println("3 < 7");
+}
