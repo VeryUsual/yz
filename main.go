@@ -285,7 +285,7 @@ func (p *Parser) func_statement() Function {
 			if p.peek_next().Type == "IDENT" {
 				p.eat("HASH")
 				if p.eat("IDENT").Value == "arbitrary_params_allowed" {
-					args["_arbitrary_params_allowed_"] = "YES"
+					args["_yz_arbitrary_params_allowed_"] = "YES"
 				} else {
 					log.Fatalf("Unknown hash parameter on function %s.", name)
 				}
@@ -424,7 +424,7 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 		if _, exists := functions[s.Name]; exists {
 			variables_and_param_values := variables
 
-			if functions[s.Name].Parameters["_arbitrary_params_allowed_"] == "YES" {
+			if functions[s.Name].Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
 				for name, value := range s.Parameters {
 					variables_and_param_values[name] = value
 				}
@@ -433,7 +433,15 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 					if _, ok := functions[s.Name].Parameters[name]; ok {
 						variables_and_param_values[name] = value
 					} else {
-						log.Fatalf("Call to function %s failed due to non-existant parameter %s without _arbitrary_params_allowed_ flag.", s.Name, name)
+						log.Fatalf("Call to function %s failed due to non-existant parameter %s without _yz_arbitrary_params_allowed_ flag.", s.Name, name)
+					}
+				}
+			}
+
+			for name := range functions[s.Name].Parameters {
+				if name != "_yz_arbitrary_params_allowed_" {
+					if _, ok := s.Parameters[name]; !ok {
+						log.Fatalf("Missing required parameter %s", name)
 					}
 				}
 			}
@@ -456,7 +464,11 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 	case Str:
 		return e.Value
 	case Var:
-		return variables[e.Name]
+		if _, ok := variables[e.Name]; ok {
+			return variables[e.Name]
+		} else {
+			log.Fatalf("Reference of non-existant variable %s", e.Name)
+		}
 	case Add:
 		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
 		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
