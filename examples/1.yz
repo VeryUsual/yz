@@ -25,5 +25,6 @@ println(y);
 let z = y * 44 + 3;
 println(z);
 
-other();
-main(param 4, other_param 3, fake_param 99);
+let x = 4 + 3;
+
+main(param 4, other_param 4+7*4, fake_param 99);

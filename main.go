@@ -71,7 +71,7 @@ type Function struct {
 
 type FuncCallStatement struct {
 	Name       string
-	Parameters map[string]string
+	Parameters map[string]any
 }
 
 type Program struct {
@@ -314,16 +314,14 @@ func (p *Parser) func_statement() Function {
 }
 
 func (p *Parser) func_call_statement() FuncCallStatement {
-	args := map[string]string{}
+	args := map[string]any{}
 	func_name := p.eat("IDENT").Value
-	p.eat("LPAREN");
+	p.eat("LPAREN")
 	for p.cur().Type != "RPAREN" {
-		param_name := p.eat("IDENT").Value;
-		if p.cur().Type == "NUMBER" || p.cur().Type == "STR" {
-			args[param_name] = p.eat(p.cur().Type).Value
-			if p.cur().Type != "RPAREN" {
-				p.eat("COMMA")
-			}
+		param_name := p.eat("IDENT").Value
+		args[param_name] = p.expr()
+		if p.cur().Type != "RPAREN" {
+			p.eat("COMMA")
 		}
 	}
 	p.eat("RPAREN");
@@ -421,19 +419,21 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 	case Function:
 		functions[s.Name] = s
 	case FuncCallStatement:
-		if _, exists := functions[s.Name]; exists {
-			variables_and_param_values := variables
+		if fn, exists := functions[s.Name]; exists {
+			func_vars := make(map[string]string)
 
-			if functions[s.Name].Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
-				for name, value := range s.Parameters {
-					variables_and_param_values[name] = value
-				}
-			} else {
-				for name, value := range s.Parameters {
-					if _, ok := functions[s.Name].Parameters[name]; ok {
-						variables_and_param_values[name] = value
+			for key, value := range variables {
+				func_vars[key] = value
+			}
+
+			for param, param_value := range s.Parameters {
+				if _, ok := fn.Parameters[param]; ok {
+					func_vars[param] = eval_expr(param_value, variables, functions)
+				} else {
+					if functions[s.Name].Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
+						func_vars[param] = eval_expr(param_value, variables, functions)
 					} else {
-						log.Fatalf("Call to function %s failed due to non-existant parameter %s without _yz_arbitrary_params_allowed_ flag.", s.Name, name)
+						log.Fatalf("Call to function %s failed due to non-existant parameter %s without _yz_arbitrary_params_allowed_ flag.", param, s.Name)
 					}
 				}
 			}
@@ -446,8 +446,8 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 				}
 			}
 
-			for _, stmt := range functions[s.Name].Contents {
-				run_statement(stmt, variables, functions)
+			for _, stmt := range fn.Contents {
+				run_statement(stmt, func_vars, functions)
 			}
 		} else {
 			log.Fatalf("Call to non-existant function %s.", s.Name)
