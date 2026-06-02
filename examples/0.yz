@@ -1,2 +1,10 @@
-let x = 5;
+func add(first_number, second_number) {
+    let result = first_number + second_number;
+    return result;
+}
+
+println("FOUR PLUS FOUR");
+let x = add(first_number 4, second_number 4);
+println("IS:");
 println(x);
+println("---");

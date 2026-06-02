@@ -27,4 +27,7 @@ println(z);
 
 let x = 4 + 3;
 
-main(param 4, other_param 4+7*4, fake_param 99);
+let x = main();
+println(x);
+
+main(param 4, other_param 4, fake_param 99);

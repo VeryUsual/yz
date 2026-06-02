@@ -17,5 +17,5 @@ func main(param, other_param) {
     return i;
 }
 
-let y = main(5, "32");
+let y = main(param 5, other_param "32");
 println(y);

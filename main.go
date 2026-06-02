@@ -74,10 +74,19 @@ type FuncCallStatement struct {
 	Parameters map[string]any
 }
 
+type FuncCallExpr struct {
+	Name       string
+	Parameters map[string]any
+}
+
 type Program struct {
 	statements []any
 	variables map[string]string
 	functions map[string]Function
+}
+
+type Return struct {
+	Value any
 }
 
 // Tokenizer
@@ -123,6 +132,8 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"IF", word})
 			case "func":
 				tokens = append(tokens, Token{"FUNC", word})
+			case "return":
+				tokens = append(tokens, Token{"RETURN", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -232,8 +243,14 @@ func (p *Parser) statement() any {
 		return p.if_statement()
 	} else if p.cur().Type == "FUNC" {
 		return p.func_statement()
+	} else if p.cur().Type == "RETURN" {
+		return p.return_statement()
 	} else if p.cur().Type == "IDENT" {
-		return p.func_call_statement()
+		if p.peek_next().Type == "LPAREN" {
+			return p.func_call_statement()
+		} else {
+			return p.expr()
+		}
 	} else {
 		log.Fatalf("Unexpected statement token: %s", p.cur().Type)
 		os.Exit(0)
@@ -329,12 +346,36 @@ func (p *Parser) func_call_statement() FuncCallStatement {
 	return FuncCallStatement{func_name, args}
 }
 
+func (p *Parser) func_call_expr() FuncCallExpr {
+	args := map[string]any{}
+	func_name := p.eat("IDENT").Value
+	p.eat("LPAREN")
+	for p.cur().Type != "RPAREN" {
+		param_name := p.eat("IDENT").Value
+		args[param_name] = p.expr()
+		if p.cur().Type != "RPAREN" {
+			p.eat("COMMA")
+		}
+	}
+	p.eat("RPAREN")
+	return FuncCallExpr{func_name, args}
+}
+
+func (p *Parser) return_statement() Return {
+	p.eat("RETURN")
+	value := p.expr()
+	p.eat("SEMI")
+	return Return{value}
+}
+
 func (p *Parser) expr() any {
 	if p.cur().Type == "QUOTE" {
 		p.eat("QUOTE")
 		str := p.eat("STR").Value
 		p.eat("QUOTE")
 		return Str{str}
+	} else if p.cur().Type == "IDENT" && p.peek_next().Type == "LPAREN" {
+		return p.func_call_expr()
 	}
 
 	return p.add_expr()
@@ -363,6 +404,43 @@ func (p *Parser) mul_expr() any {
 		node = Mul{node, right}
 	}
 	return node;
+}
+
+func func_call_and_return(call FuncCallExpr, variables map[string]string, functions map[string]Function) string {
+	if fn, exists := functions[call.Name]; exists {
+		func_vars := make(map[string]string)
+        for key, value := range variables {
+            func_vars[key] = value
+        }
+        for param, param_value := range call.Parameters {
+            if _, ok := fn.Parameters[param]; ok {
+                func_vars[param] = eval_expr(param_value, variables, functions)
+            } else {
+                if fn.Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
+                    func_vars[param] = eval_expr(param_value, variables, functions)
+                } else {
+                    log.Fatalf("Call to function %s failed due to non-existent parameter %s without _yz_arbitrary_params_allowed_ flag.", call.Name, param)
+                }
+            }
+        }
+        for name := range fn.Parameters {
+            if name != "_yz_arbitrary_params_allowed_" {
+                if _, ok := call.Parameters[name]; !ok {
+                    log.Fatalf("Missing required parameter %s", name)
+                }
+            }
+        }
+        for _, stmt := range fn.Contents {
+            if ret, ok := stmt.(Return); ok {
+                return eval_expr(ret.Value, func_vars, functions)
+            }
+            run_statement(stmt, func_vars, functions)
+        }
+        return ""
+	} else {
+		log.Fatalf("Call to non-existent function %s.", call.Name)
+        return ""
+	}
 }
 
 func (p *Parser) primary() any {
@@ -402,22 +480,26 @@ func run(program *Program) {
 	}
 }
 
-func run_statement(stmt any, variables map[string]string, functions map[string]Function) {
+func run_statement(stmt any, variables map[string]string, functions map[string]Function) string {
 	switch s := stmt.(type) {
 	case Let:
 		value := eval_expr(s.Value, variables, functions)
 		variables[s.Name] = value
+		return ""
 	case Print:
 		value := eval_expr(s.Expr, variables, functions)
 		fmt.Println(value)
+		return ""
 	case IfStmt:
 		if s.Condition == true {
 			for _, thenStmt := range s.Then {
 				run_statement(thenStmt, variables, functions)
 			}	
 		}
+		return ""
 	case Function:
 		functions[s.Name] = s
+		return ""
 	case FuncCallStatement:
 		if fn, exists := functions[s.Name]; exists {
 			func_vars := make(map[string]string)
@@ -452,8 +534,12 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 		} else {
 			log.Fatalf("Call to non-existant function %s.", s.Name)
 		}
+		return ""
+	case Return:
+		return eval_expr(s.Value, variables, functions)
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
+		return ""
 	}
 }
 
@@ -481,6 +567,8 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
 		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
 		return strconv.Itoa(left * right)
+	case FuncCallExpr:
+		return func_call_and_return(e, variables, functions)
 	default:
 		log.Fatalf("Unknown expression %s of type %s", expr, reflect.TypeOf(expr).String())
 	}
@@ -502,7 +590,7 @@ func main() {
 
 	fmt.Print("YZ interpeter Output:\n\n")
 
-	data, err := os.ReadFile("examples/1.yz")
+	data, err := os.ReadFile("examples/0.yz")
 	if err != nil {
 		log.Fatal(err)
 	}
