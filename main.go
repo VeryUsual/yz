@@ -135,6 +135,8 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"FUNC", word})
 			case "return":
 				tokens = append(tokens, Token{"RETURN", word})
+			case "else":
+				tokens = append(tokens, Token{"ELSE", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -308,7 +310,6 @@ func (p *Parser) if_statement() IfStmt {
 		log.Fatalf("%s is not a comparison operator", p.cur().Type)
 	}
 	expr2 := eval_expr(p.expr(), make(map[string]string), make(map[string]Function))
-	p.eat("LBRACE")
 
 	condition := false
 	switch comparison_operator.Type {
@@ -358,12 +359,27 @@ func (p *Parser) if_statement() IfStmt {
 		log.Fatalf("%s is not a comparison operator", p.cur().Type)
 	}
 
+	p.eat("LBRACE")
+
 	thenStmts := []any{}
 	for p.cur().Type != "RBRACE" {
 		thenStmts = append(thenStmts, p.statement())
 	}
 	p.eat("RBRACE")
-	return IfStmt{condition, thenStmts, []any{}}
+
+	elseStmts := []any{}
+	if p.cur().Type == "ELSE" {
+		p.eat("ELSE")
+		p.eat("LBRACE")
+
+		for p.cur().Type != "RBRACE" {
+			elseStmts = append(elseStmts, p.statement())
+		}
+
+		p.eat("RBRACE")
+	}
+
+	return IfStmt{condition, thenStmts, elseStmts}
 }
 
 func (p *Parser) func_statement() Function {
@@ -570,7 +586,11 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 		if s.Condition == true {
 			for _, thenStmt := range s.Then {
 				run_statement(thenStmt, variables, functions)
-			}	
+			}
+		} else {
+			for _, elseStmt := range s.Else {
+				run_statement(elseStmt, variables, functions)
+			}
 		}
 		return ""
 	case Function:
