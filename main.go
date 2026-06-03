@@ -26,45 +26,50 @@ import (
 // AST Nodes
 
 type Num struct {
-	Value int
+	Value      int
 }
 
 type Str struct {
-	Value string
+	Value      string
 }
 
 type Var struct {
-	Name  string
+	Name       string
 }
 
 type Add struct {
-	Left  any
-	Right any
+	Left       any
+	Right      any
 }
 
 type Sub struct {
-	Left  any
-	Right any
+	Left       any
+	Right      any
 }
 
 type Mul struct {
-	Left  any
-	Right any
+	Left       any
+	Right      any
 }
 
 type Let struct {
-	Name  string
-	Value any
+	Name       string
+	Value      any
 }
 
 type Print struct {
-	Expr any
+	Expr       any
 }
 
 type IfStmt struct {
-	Condition any
-	Then      []any
-	Else      []any
+	Condition  any
+	Then       []any
+	Else       []any
+}
+
+type WhileLoop struct {
+	Condition  any
+	Contents   []any
 }
 
 type Function struct {
@@ -86,22 +91,22 @@ type FuncCallExpr struct {
 
 type Program struct {
 	statements []any
-	variables map[string]string
-	functions map[string]Function
+	variables  map[string]string
+	functions  map[string]Function
 }
 
 type Return struct {
-	Value     any
+	Value      any
 }
 
 type Comparison struct {
-	Left      any
-	Operator  string
-	Right     any
+	Left       any
+	Operator   string
+	Right      any
 }
 
 type ImportStmt struct {
-	library   string
+	library    string
 }
 
 type YZInvokeStmt struct {
@@ -165,6 +170,8 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"PRIVATE", word})
 			case "_yz_invoke":
 				tokens = append(tokens, Token{"YZ_INVOKE", word})
+			case "while":
+				tokens = append(tokens, Token{"WHILE", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -308,6 +315,8 @@ func (p *Parser) statement() any {
 		} else {
 			return p.expr()
 		}
+	} else if p.cur().Type == "WHILE" {
+		return p.while_statement()
 	} else {
 		log.Fatalf("Unexpected statement token: %s", p.cur().Type)
 		os.Exit(0)
@@ -366,6 +375,41 @@ func (p *Parser) if_statement() IfStmt {
 	}
 
 	return IfStmt{Comparison{Left: expr1, Operator: comparison_operator.Type, Right: expr2}, thenStmts, elseStmts}
+}
+
+func (p *Parser) while_statement() WhileLoop {
+	p.eat("WHILE")
+	expr1 := p.expr()
+	comparison_operator := Token{}
+	switch p.cur().Type {
+	case "DOUBLE_EQUAL", "LESS_THAN_EQUAL", "LESS_THAN", "GREATER_EQUAL", "GREATER":
+		comparison_operator = p.eat(p.cur().Type)
+	default:
+		log.Fatalf("%s is not a comparison operator", p.cur().Type)
+	}
+	expr2 := p.expr()
+
+	p.eat("LBRACE")
+
+	stmts := []any{}
+	for p.cur().Type != "RBRACE" {
+		stmts = append(stmts, p.statement())
+	}
+	p.eat("RBRACE")
+
+	elseStmts := []any{}
+	if p.cur().Type == "ELSE" {
+		p.eat("ELSE")
+		p.eat("LBRACE")
+
+		for p.cur().Type != "RBRACE" {
+			elseStmts = append(elseStmts, p.statement())
+		}
+
+		p.eat("RBRACE")
+	}
+
+	return WhileLoop{Comparison{Left: expr1, Operator: comparison_operator.Type, Right: expr2}, stmts}
 }
 
 func (p *Parser) func_statement() Function {
@@ -620,6 +664,13 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 			}
 		}
 		return ""
+	case WhileLoop:
+		for eval_expr(s.Condition, variables, functions) == "true" {
+			for _, thenStmt := range s.Contents {
+				run_statement(thenStmt, variables, functions)
+			}
+		}
+		return ""
 	case Function:
 		functions[s.Name] = s
 		return ""
@@ -840,7 +891,7 @@ func main() {
 
 	fmt.Print("YZ interpeter Output:\n\n")
 
-	data, err := os.ReadFile("examples/1.yz")
+	data, err := os.ReadFile("examples/2.yz")
 	if err != nil {
 		log.Fatal(err)
 	}

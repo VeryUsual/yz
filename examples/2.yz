@@ -1,9 +1,7 @@
-import example;
-
-example.example(4, 9);
+import stdlib;
 
 let x = "32";
-x = int(x);
+let x = int(val x);
 
 func main(param, other_param) {
     println(x);
@@ -11,7 +9,7 @@ func main(param, other_param) {
     let i = 0;
     while i < 20 {
         println(i);
-        i++;
+        let i = i + 1;
     }
 
     return i;

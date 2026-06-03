@@ -2,12 +2,18 @@ func str(val) public {
 	return val;
 }
 
-func must_int(num) public {
+func int(val) public {
+	return val;
+}
+
+func must_num(num) public {
 	if 0 < num {}
 	return num;
 }
 
 func rand_num(min, max) public {
+	let min = must_num(num min);
+	let max = must_num(num max);
 	_yz_invoke(_yz_cmd_rand_num, rand_num, min min, max max);
 	return rand_num;
 }
