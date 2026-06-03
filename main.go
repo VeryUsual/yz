@@ -115,6 +115,12 @@ type YZInvokeStmt struct {
 	Parameters       map[string]any
 }
 
+type BreakStmt struct {}
+
+// Custom error types
+
+var ErrorBreak = errors.New("break")
+
 // Tokenizer
 
 type Token struct {
@@ -172,6 +178,8 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"YZ_INVOKE", word})
 			case "while":
 				tokens = append(tokens, Token{"WHILE", word})
+			case "break":
+				tokens = append(tokens, Token{"BREAK", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -317,6 +325,8 @@ func (p *Parser) statement() any {
 		}
 	} else if p.cur().Type == "WHILE" {
 		return p.while_statement()
+	} else if p.cur().Type == "BREAK" {
+		return p.break_statement()
 	} else {
 		log.Fatalf("Unexpected statement token: %s", p.cur().Type)
 		os.Exit(0)
@@ -530,6 +540,12 @@ func (p *Parser) yz_invoke_statement() YZInvokeStmt {
 	return YZInvokeStmt{func_to_invoke, return_var, params}
 }
 
+func (p *Parser) break_statement() BreakStmt {
+	p.eat("BREAK")
+	p.eat("SEMI")
+	return BreakStmt{}
+}
+
 func (p *Parser) expr() any {
 	if p.cur().Type == "QUOTE" {
 		p.eat("QUOTE")
@@ -638,42 +654,50 @@ func (p *Parser) primary() any {
 
 func run(program *Program) {
 	for _, stmt := range program.statements {
-		run_statement(stmt, program.variables, program.functions)
+		if _, err := run_statement(stmt, program.variables, program.functions); err == ErrorBreak {
+			break;
+		}
 	}
 }
 
-func run_statement(stmt any, variables map[string]string, functions map[string]Function) string {
+func run_statement(stmt any, variables map[string]string, functions map[string]Function) (string, error) {
 	switch s := stmt.(type) {
 	case Let:
 		value := eval_expr(s.Value, variables, functions)
 		variables[s.Name] = value
-		return ""
+		return "", nil
 	case Print:
 		value := eval_expr(s.Expr, variables, functions)
 		fmt.Println(value)
-		return ""
+		return "", nil
 	case IfStmt:
 		condition := eval_expr(s.Condition, variables, functions) == "true"
 		if condition {
 			for _, thenStmt := range s.Then {
-				run_statement(thenStmt, variables, functions)
+				if _, err := run_statement(thenStmt, variables, functions); err != nil {
+					return "", err
+				}
 			}
 		} else {
 			for _, elseStmt := range s.Else {
-				run_statement(elseStmt, variables, functions)
+				if _, err := run_statement(elseStmt, variables, functions); err != nil {
+					return "", err
+				}
 			}
 		}
-		return ""
+		return "", nil
 	case WhileLoop:
 		for eval_expr(s.Condition, variables, functions) == "true" {
 			for _, thenStmt := range s.Contents {
-				run_statement(thenStmt, variables, functions)
+				if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
+					return "", nil // break outta the while loop
+				}
 			}
 		}
-		return ""
+		return "", nil
 	case Function:
 		functions[s.Name] = s
-		return ""
+		return "", nil
 	case FuncCallStatement:
 		if fn, exists := functions[s.Name]; exists {
 			func_vars := make(map[string]string)
@@ -703,14 +727,16 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 			}
 
 			for _, stmt := range fn.Contents {
-				run_statement(stmt, func_vars, functions)
+				if _, err := run_statement(stmt, func_vars, functions); err != nil {
+					return "", err
+				}
 			}
 		} else {
 			log.Fatalf("Call to non-existent function %s.", s.Name)
 		}
-		return ""
+		return "", nil
 	case Return:
-		return eval_expr(s.Value, variables, functions)
+		return eval_expr(s.Value, variables, functions), nil
 	case ImportStmt:
 		dir, err := os.UserHomeDir()
 		if err != nil {
@@ -740,17 +766,19 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 				functions[f.Name] = Function{f.Name, f.Parameters, f.Contents, f.Visibility}
 			}
 		}
-		return ""
+		return "", nil
 	case YZInvokeStmt:
 		parameters := make(map[string]string)
 		for k, v := range s.Parameters {
 			parameters[k] = eval_expr(v, variables, functions)
 		}
 		variables[s.return_var] = handle_yz_invoke(s, parameters)
-		return ""
+		return "", nil
+	case BreakStmt:
+		return "", ErrorBreak
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
-		return ""
+		return "", nil
 	}
 }
 

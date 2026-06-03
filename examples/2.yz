@@ -6,10 +6,13 @@ let x = int(val x);
 func main(param, other_param) {
     println(x);
 
-    let i = 0;
+    let i = -5;
     while i < 20 {
         println(i);
         let i = i + 1;
+        if i > 5 {
+            break;
+        }
     }
 
     return i;
