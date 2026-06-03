@@ -1,3 +1,8 @@
-func str(num) public {
+func str(val) public {
+	return val;
+}
+
+func must_int(num) public {
+	if 0 < num {}
 	return num;
 }

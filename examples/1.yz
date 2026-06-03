@@ -38,4 +38,5 @@ main(param 4, other_param 4, fake_param 99);
 println("");
 println(x);
 println("as a string is:");
-println(str(num x));
+println(str(val x));
+println(str(val must_int(num 9)));
