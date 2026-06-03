@@ -302,7 +302,7 @@ func (p *Parser) println_statement() Print {
 func (p *Parser) if_statement() IfStmt {
 	p.eat("IF")
 	expr1 := eval_expr(p.expr(), make(map[string]string), make(map[string]Function))
-	comparison_operator := Token{"null", "null"}
+	comparison_operator := Token{}
 	switch p.cur().Type {
 	case "DOUBLE_EQUAL", "LESS_THAN_EQUAL", "LESS_THAN", "GREATER_EQUAL", "GREATER":
 		comparison_operator = p.eat(p.cur().Type)
