@@ -107,6 +107,7 @@ type ImportStmt struct {
 type YZInvokeStmt struct {
 	func_to_invoke   string
 	return_var       string
+	Parameters       map[string]any
 }
 
 // Tokenizer
@@ -468,9 +469,21 @@ func (p *Parser) yz_invoke_statement() YZInvokeStmt {
 	func_to_invoke := p.eat("IDENT").Value
 	p.eat("COMMA")
 	return_var := p.eat("IDENT").Value
+	params := make(map[string]any)
+	if p.cur().Type != "RPAREN" {
+		p.eat("COMMA")
+		for p.cur().Type != "RPAREN" {
+			param_name := p.eat("IDENT").Value
+			param_value := p.expr()
+			params[param_name] = param_value
+			if p.cur().Type != "RPAREN" {
+				p.eat("COMMA")
+			}
+		}
+	}
 	p.eat("RPAREN")
 	p.eat("SEMI")
-	return YZInvokeStmt{func_to_invoke, return_var}
+	return YZInvokeStmt{func_to_invoke, return_var, params}
 }
 
 func (p *Parser) expr() any {
@@ -678,7 +691,11 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 		}
 		return ""
 	case YZInvokeStmt:
-		variables[s.return_var] = handle_yz_invoke(s)
+		parameters := make(map[string]string)
+		for k, v := range s.Parameters {
+			parameters[k] = eval_expr(v, variables, functions)
+		}
+		variables[s.return_var] = handle_yz_invoke(s, parameters)
 		return ""
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
@@ -686,7 +703,7 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 	}
 }
 
-func handle_yz_invoke(s YZInvokeStmt) string {
+func handle_yz_invoke(s YZInvokeStmt, params map[string]string) string {
 	function := s.func_to_invoke
 
 	if strings.HasPrefix(function, "_yz_cmd_") {
@@ -695,7 +712,9 @@ func handle_yz_invoke(s YZInvokeStmt) string {
 
 	switch function {
 		case "rand_num":
-			return strconv.Itoa(rand.IntN(100))
+			min, _ := strconv.Atoi(params["min"])
+			max, _ := strconv.Atoi(params["max"])
+			return strconv.Itoa(min + rand.IntN(max-min+1))
 		default:
 			return "";
 	}

@@ -42,8 +42,11 @@ println(str(val x));
 println(str(val must_int(num 9)));
 
 println("Here's 5 random numbers between 1 and 100:");
-println(rand_num());
-println(rand_num());
-println(rand_num());
-println(rand_num());
-println(rand_num());
+println(rand_num(min 1, max 100));
+println(rand_num(min 1, max 100));
+println(rand_num(min 1, max 100));
+println(rand_num(min 1, max 100));
+println(rand_num(min 1, max 100));
+
+println("And here's a big one");
+println(rand_num(min 10000000, max 100000000));

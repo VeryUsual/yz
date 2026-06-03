@@ -7,7 +7,7 @@ func must_int(num) public {
 	return num;
 }
 
-func rand_num() public {
-	_yz_invoke(_yz_cmd_rand_num, rand_num);
+func rand_num(min, max) public {
+	_yz_invoke(_yz_cmd_rand_num, rand_num, min min, max max);
 	return rand_num;
 }
