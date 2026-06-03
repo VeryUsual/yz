@@ -1,3 +1,5 @@
+import stdlib;
+
 let x = -5;
 let f = "ffafafkihujyfdersrfedui";
 
@@ -32,3 +34,8 @@ let x = main(param 6, other_param 8, fake_param 42);
 println(x);
 
 main(param 4, other_param 4, fake_param 99);
+
+println("");
+println(x);
+println("as a string is:");
+println(str(num x));

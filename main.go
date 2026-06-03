@@ -10,6 +10,7 @@ package main
 // Imports
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -68,6 +69,7 @@ type Function struct {
 	Name       string
 	Parameters map[string]string
 	Contents   []any
+	Visibility string
 }
 
 type FuncCallStatement struct {
@@ -87,13 +89,17 @@ type Program struct {
 }
 
 type Return struct {
-	Value any
+	Value     any
 }
 
 type Comparison struct {
 	Left      any
 	Operator  string
 	Right     any
+}
+
+type ImportStmt struct {
+	library   string
 }
 
 // Tokenizer
@@ -143,6 +149,12 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"RETURN", word})
 			case "else":
 				tokens = append(tokens, Token{"ELSE", word})
+			case "import":
+				tokens = append(tokens, Token{"IMPORT", word})
+			case "public":
+				tokens = append(tokens, Token{"PUBLIC", word})
+			case "private":
+				tokens = append(tokens, Token{"PRIVATE", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -271,11 +283,13 @@ func (p *Parser) statement() any {
 	} else if p.cur().Type == "PRINTLN" {
 		return p.println_statement()
 	} else if p.cur().Type == "IF" {
-		return p.if_statement(p.variables, p.functions)
+		return p.if_statement()
 	} else if p.cur().Type == "FUNC" {
 		return p.func_statement()
 	} else if p.cur().Type == "RETURN" {
 		return p.return_statement()
+	} else if p.cur().Type == "IMPORT" {
+		return p.import_statement()
 	} else if p.cur().Type == "IDENT" {
 		if p.peek_next().Type == "LPAREN" {
 			return p.func_call_statement()
@@ -307,7 +321,7 @@ func (p *Parser) println_statement() Print {
 	return Print{expr}
 }
 
-func (p *Parser) if_statement(variables map[string]string, functions map[string]Function) IfStmt {
+func (p *Parser) if_statement() IfStmt {
 	p.eat("IF")
 	expr1 := p.expr()
 	comparison_operator := Token{}
@@ -373,13 +387,23 @@ func (p *Parser) func_statement() Function {
 		}
 	}
 	p.eat("RPAREN")
+
+	visibility := "private"
+	if p.cur().Type == "PUBLIC" {
+		visibility = "public"
+		p.eat(p.cur().Type)
+	} else if p.cur().Type == "PRIVATE" {
+		visibility = "private"
+		p.eat(p.cur().Type)
+	}
+
 	p.eat("LBRACE")
 	funcStmts := []any{}
 	for p.cur().Type != "RBRACE" {
 		funcStmts = append(funcStmts, p.statement())
 	}
 	p.eat("RBRACE")
-	return Function{name, args, funcStmts}
+	return Function{name, args, funcStmts, visibility}
 }
 
 func (p *Parser) func_call_statement() FuncCallStatement {
@@ -418,6 +442,13 @@ func (p *Parser) return_statement() Return {
 	value := p.expr()
 	p.eat("SEMI")
 	return Return{value}
+}
+
+func (p *Parser) import_statement() ImportStmt {
+	p.eat("IMPORT")
+	library := p.eat("IDENT").Value
+	p.eat("SEMI")
+	return ImportStmt{library}
 }
 
 func (p *Parser) expr() any {
@@ -594,6 +625,36 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 		return ""
 	case Return:
 		return eval_expr(s.Value, variables, functions)
+	case ImportStmt:
+		dir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		lib_path := dir + "/Projects/yz/libs/" + s.library + ".yz"
+		var library_contents []byte
+
+		if _, err := os.Stat(lib_path); err == nil {
+			library_contents, err = os.ReadFile(lib_path)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else if errors.Is(err, os.ErrNotExist) {
+			log.Fatalf("Trying to import non-existent library %s", s.library)
+		} else {
+			log.Fatal(err)
+		}
+
+		verbose := false
+		tokens := lexer(string(library_contents), &verbose)
+		parser := new_parser(tokens, make(map[string]string), make(map[string]Function))
+		program := parser.parse()
+		run(&program)
+		for _, f := range program.functions {
+			if f.Visibility == "public" {
+				functions[f.Name] = Function{f.Name, f.Parameters, f.Contents, f.Visibility}
+			}
+		}
+		return ""
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
 		return ""
