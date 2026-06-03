@@ -14,10 +14,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os"
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -102,6 +104,11 @@ type ImportStmt struct {
 	library   string
 }
 
+type YZInvokeStmt struct {
+	func_to_invoke   string
+	return_var       string
+}
+
 // Tokenizer
 
 type Token struct {
@@ -155,6 +162,8 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"PUBLIC", word})
 			case "private":
 				tokens = append(tokens, Token{"PRIVATE", word})
+			case "_yz_invoke":
+				tokens = append(tokens, Token{"YZ_INVOKE", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -290,6 +299,8 @@ func (p *Parser) statement() any {
 		return p.return_statement()
 	} else if p.cur().Type == "IMPORT" {
 		return p.import_statement()
+	} else if p.cur().Type == "YZ_INVOKE" {
+		return p.yz_invoke_statement()
 	} else if p.cur().Type == "IDENT" {
 		if p.peek_next().Type == "LPAREN" {
 			return p.func_call_statement()
@@ -449,6 +460,17 @@ func (p *Parser) import_statement() ImportStmt {
 	library := p.eat("IDENT").Value
 	p.eat("SEMI")
 	return ImportStmt{library}
+}
+
+func (p *Parser) yz_invoke_statement() YZInvokeStmt {
+	p.eat("YZ_INVOKE")
+	p.eat("LPAREN")
+	func_to_invoke := p.eat("IDENT").Value
+	p.eat("COMMA")
+	return_var := p.eat("IDENT").Value
+	p.eat("RPAREN")
+	p.eat("SEMI")
+	return YZInvokeStmt{func_to_invoke, return_var}
 }
 
 func (p *Parser) expr() any {
@@ -655,9 +677,27 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 			}
 		}
 		return ""
+	case YZInvokeStmt:
+		variables[s.return_var] = handle_yz_invoke(s)
+		return ""
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
 		return ""
+	}
+}
+
+func handle_yz_invoke(s YZInvokeStmt) string {
+	function := s.func_to_invoke
+
+	if strings.HasPrefix(function, "_yz_cmd_") {
+		function = strings.Replace(function, "_yz_cmd_", "", 1)
+	}
+
+	switch function {
+		case "rand_num":
+			return strconv.Itoa(rand.IntN(100))
+		default:
+			return "";
 	}
 }
 

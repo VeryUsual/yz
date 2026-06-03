@@ -6,3 +6,8 @@ func must_int(num) public {
 	if 0 < num {}
 	return num;
 }
+
+func rand_num() public {
+	_yz_invoke(_yz_cmd_rand_num, rand_num);
+	return rand_num;
+}
