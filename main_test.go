@@ -53,7 +53,14 @@ func TestMain(t *testing.T) {
 		}
 		println(sub(first 4, second 4));
 
+		let four = 4;
+		if four + four == 9 {
+			println("four plus four is nine!");
+		} else {
+			println("four plus four isn't nine");
+		}
+
 		`, &verbose)
 	})
-	assert.Equal(t, strings.TrimSpace(out), "203\nHello, world!\nx equals x\n1\n2\nFour plus four is:\n8\n0")
+	assert.Equal(t, strings.TrimSpace(out), "203\nHello, world!\nx equals x\n1\n2\nFour plus four is:\n8\n0\nfour plus four isn't nine")
 }

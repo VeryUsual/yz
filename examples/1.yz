@@ -5,6 +5,7 @@ func main(param, other_param, #arbitrary_params_allowed) {
     println(param);
     println(other_param);
     println(fake_param);
+    return 524;
 }
 
 func other() {
@@ -27,7 +28,7 @@ println(z);
 
 let x = 4 + 3;
 
-let x = main();
+let x = main(param 6, other_param 8, fake_param 42);
 println(x);
 
 main(param 4, other_param 4, fake_param 99);

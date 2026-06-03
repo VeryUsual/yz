@@ -34,7 +34,12 @@ if 4 <= 4 {
 if 9 < 7 {
     println("9 < 7");
 } else {
-    println("9 doesn't < 7");
+    if 4 == 4 {
+        println("if within else");
+        if 7 >= 4 {
+            println("if within if within else");
+        }
+    }
 }
 
 println("{{3+4}} {{7*3}} {{add(first_number 4, second_number 4)}}");
