@@ -1,0 +1,13 @@
+import guitk;
+
+Activate_Theme(theme "azure dark");
+
+let hello_world = Label(text "hello");
+
+let x = 0;
+while x < 30 {
+    Pack(widget hello_world);
+    let x = x + 1;
+}
+
+App_Loop();

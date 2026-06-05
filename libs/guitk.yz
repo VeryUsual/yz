@@ -1,0 +1,18 @@
+func Label(text) public {
+    return "widget=label|;|text={{text}}";
+}
+
+func Pack(widget) public {
+    _yz_invoke(_yz_cmd_guitk_pack, _, widget widget);
+    return widget;
+}
+
+func App_Loop() public {
+    _yz_invoke(_yz_cmd_guitk_loop, _);
+    return 1;
+}
+
+func Activate_Theme(theme) public {
+    _yz_invoke(_yz_cmd_guitk_activate_theme, _, theme theme);
+    return theme;
+}

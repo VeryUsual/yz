@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	. "modernc.org/tk9.0"
+	_ "modernc.org/tk9.0/themes/azure"
 )
 
 // AST Nodes
@@ -794,6 +796,27 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) string {
 			min, _ := strconv.Atoi(params["min"])
 			max, _ := strconv.Atoi(params["max"])
 			return strconv.Itoa(min + rand.IntN(max-min+1))
+		case "guitk_activate_theme":
+			ActivateTheme(params["theme"])
+			return ""
+		case "guitk_pack":
+			paramss := make(map[string]string)
+
+			for _, v := range strings.Split(params["widget"], "|;|") {
+				parts := strings.Split(v, "=")
+				if len(parts) == 2 {
+					paramss[parts[0]] = parts[1]
+				}
+			}
+
+			if paramss["widget"] == "label" {
+				Pack(Label(Txt(paramss["text"])))
+			}
+
+			return "";
+		case "guitk_loop":
+			App.Wait()
+			return "";
 		default:
 			return "";
 	}
@@ -919,7 +942,7 @@ func main() {
 
 	fmt.Print("YZ interpeter Output:\n\n")
 
-	data, err := os.ReadFile("examples/2.yz")
+	data, err := os.ReadFile("examples/gui.yz")
 	if err != nil {
 		log.Fatal(err)
 	}
