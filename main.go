@@ -86,7 +86,7 @@ type GoThruLoop struct {
 
 type Function struct {
 	Name       string
-	Parameters map[string]string
+	Parameters map[string]any
 	Contents   []any
 	Visibility string
 }
@@ -458,7 +458,7 @@ func (p *Parser) gothru_statement() GoThruLoop {
 }
 
 func (p *Parser) func_statement() Function {
-	args := map[string]string{}
+	args := map[string]any{}
 
 	p.eat("FUNC")
 	name := p.eat("IDENT").Value
@@ -803,9 +803,9 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 		}
 		return "", nil
 	case YZInvokeStmt:
-		parameters := make(map[string]string)
+		parameters := make(map[string]any)
 		for k, v := range s.Parameters {
-			parameters[k] = eval_expr(v, variables, functions).(string)
+			parameters[k] = eval_expr(v, variables, functions)
 		}
 		variables[s.return_var] = handle_yz_invoke(s, parameters)
 		return "", nil
@@ -815,6 +815,16 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 		array := variables[s.ArrayVar]
 		switch a := array.(type) {
 			case []string:
+				for _, i := range a {
+					variables[s.IterVar] = i
+					for _, thenStmt := range s.Contents {
+						if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
+							return "", nil
+						}
+					}
+					variables[s.IterVar] = ""
+				}
+			case []any:
 				for _, i := range a {
 					variables[s.IterVar] = i
 					for _, thenStmt := range s.Contents {
@@ -835,7 +845,7 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 	}
 }
 
-func handle_yz_invoke(s YZInvokeStmt, params map[string]string) any {
+func handle_yz_invoke(s YZInvokeStmt, params map[string]any) any {
 	function := s.func_to_invoke
 
 	if strings.HasPrefix(function, "_yz_cmd_") {
@@ -844,16 +854,16 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) any {
 
 	switch function {
 		case "rand_num":
-			min, _ := strconv.Atoi(params["min"])
-			max, _ := strconv.Atoi(params["max"])
+			min, _ := strconv.Atoi(params["min"].(string))
+			max, _ := strconv.Atoi(params["max"].(string))
 			return strconv.Itoa(min + rand.IntN(max-min+1))
 		case "guitk_activate_theme":
-			ActivateTheme(params["theme"])
+			ActivateTheme(params["theme"].(string))
 			return ""
 		case "guitk_pack":
 			paramss := make(map[string]string)
 
-			for _, v := range strings.Split(params["widget"], "|;|") {
+			for _, v := range strings.Split(params["widget"].(string), "|;|") {
 				parts := strings.Split(v, "=======")
 				if len(parts) == 2 {
 					paramss[parts[0]] = parts[1]
@@ -869,7 +879,15 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) any {
 			App.Wait()
 			return "";
 		case "http_request":
-			resp, err := http.Get(params["url"])
+			req, err := http.NewRequest("GET", params["url"].(string), nil)
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
 			if err != nil {
 				panic(err)
 			}
@@ -882,7 +900,7 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) any {
 
 			return string(body);
 		case "parse_html":
-			htmlcontent := params["html"]
+			htmlcontent := params["html"].(string)
 			doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlcontent))
 			if err != nil {
 				log.Fatal(err)
@@ -903,7 +921,41 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) any {
 			})
 
 			return result
+		case "make_list":
+			return []any{}
+		case "append_to_list":
+			switch lst := params["list"].(type) {
+			case []any:
+				return append(lst, params["value"].(string))
+			default:
+				log.Fatalf("Failed: Trying to append value to array of type %T.", params["list"])
+			}
+			return ""
+		case "valuefromindex":
+			index, err := strconv.Atoi(params["index"].(string))
+			if err != nil {
+				panic(err)
+			}
 
+			switch lst := params["list"].(type) {
+			case []any:
+				if index < len(lst) {
+					return lst[index]
+				} else {
+					return ""
+				}
+			default:
+				log.Fatalf("Failed: Trying to get value from array of type %T.", params["list"])
+			}
+			return ""
+		case "listlength":
+			switch lst := params["list"].(type) {
+			case []any:
+				return strconv.Itoa( len(lst) )
+			default:
+				log.Fatalf("Failed: Trying to get length of array of type %T.", params["list"])
+			}
+			return 0
 		default:
 			return "";
 	}

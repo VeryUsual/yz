@@ -17,3 +17,23 @@ func rand_num(min, max) public {
 	_yz_invoke(_yz_cmd_rand_num, rand_num, min min, max max);
 	return rand_num;
 }
+
+func List_Make() public {
+	_yz_invoke(_yz_cmd_make_list, list);
+	return list;
+}
+
+func List_Append(list, value) public {
+	_yz_invoke(_yz_cmd_append_to_list, out, list list, value value);
+	return out;
+}
+
+func List_ValueFromIndex(list, index) public {
+	_yz_invoke(_yz_cmd_valuefromindex, out, list list, index index);
+	return out;
+}
+
+func List_Length(list) public {
+	_yz_invoke(_yz_cmd_listlength, out, list list);
+	return out;
+}

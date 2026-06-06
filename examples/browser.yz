@@ -2,18 +2,19 @@ import stdlib;
 import requests;
 import guitk;
 
-let r = Get(url "https://html.duckduckgo.com/html/");
+let r = Get(url "https://html.duckduckgo.com/html");
 
 Activate_Theme(theme "azure dark");
 
 let h = ParseHTML(html r);
 
 let i = 1;
+let c = 1;
 
 let tag = "";
 let innerText = "";
-let attributeKey = "";
-let attributeValue = "";
+let attributeKeys = List_Make();
+let attributeValues = List_Make();
 
 gothru h as e {
 	if i == 1 {
@@ -24,29 +25,46 @@ gothru h as e {
 	}
 	if i >= 3 {
 		if e == "." {
-			println(tag);
-			println(innerText);
-			println(attributeKey);
-			println(attributeValue);
-			println("");
-
 			if tag == "a" {
 				Pack(widget Label(text innerText));
 			}
-			if tag == "input" {
-				Pack(widget Label(text attributeValue));
+
+			let i = 0;
+			while i < List_Length(list attributeKeys) {
+				let key = List_ValueFromIndex(list attributeKeys, index i);
+				let value = List_ValueFromIndex(list attributeValues, index i);
+
+				if tag == "input" {
+					if key == "type" {
+						if value == "text" {
+							Pack(widget Label(text "TEXTBOX"));
+						}
+						if value == "submit" {
+							Pack(widget Label(text "BUTTON"));
+						}
+					}
+				}
+
+				let i = i + 1;
 			}
 
 			let i = 0;
 			let tag = "";
 			let innerText = "";
-			let attributeKey = "";
-			let attributeValue = "";
+			let attributeKeys = List_Make();
+			let attributeValues = List_Make();
 		} else {
-			if attributeKey == "" {
-				let attributeKey = e;
+			if c == 1 {
+				let attributeKeys = List_Append(list attributeKeys, value e);
+			}
+			if c == 2 {
+				let attributeValues = List_Append(list attributeValues, value e);
+			}
+
+			if c == 1 {
+				let c = 2;
 			} else {
-				let attributeValue = e;
+				let c = 1;
 			}
 		}
 	}
