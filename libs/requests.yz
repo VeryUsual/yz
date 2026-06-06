@@ -4,6 +4,6 @@ func Get(url) public {
 }
 
 func ParseHTML(html) public {
-	_yz_invoke(_yz_cmd_parse_html, parsedhtml);
+	_yz_invoke(_yz_cmd_parse_html, parsedhtml, html html);
 	return parsedhtml;
 }

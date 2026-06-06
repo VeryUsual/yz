@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	"golang.org/x/net/html"
+	"github.com/PuerkitoBio/goquery"
 
 	. "modernc.org/tk9.0"
 	_ "modernc.org/tk9.0/themes/azure"
@@ -836,30 +836,21 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) string {
 			return string(body);
 		case "parse_html":
 			htmlcontent := params["html"]
-			doc, err := html.Parse(strings.NewReader(htmlcontent))
+			doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlcontent))
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			var traverse func(*html.Node)
-			traverse = func(n *html.Node) {
-				if n.Type == html.ElementNode {
-					println(n.Data)
-					if len(n.Attr) > 0 {
-						for _, a := range n.Attr {
-							println(a.Key, a.Val)
-						}
+			doc.Find("*").Each(func(i int, s *goquery.Selection) {
+				fmt.Println(goquery.NodeName(s))
+				fmt.Println(s.Text())
+
+				for _, n := range s.Nodes {
+					for _, a := range n.Attr {
+						fmt.Println(a.Key, a.Val)
 					}
-				} else if n.Type == html.TextNode {
-					println(strings.TrimSpace(n.Data))
 				}
-
-				for c := n.FirstChild; c != nil; c = c.NextSibling {
-					traverse(c)
-				}
-			}
-
-			traverse(doc)
+			})
 
 			return ""
 
