@@ -3,12 +3,13 @@ module github.com/VeryUsual/yz
 go 1.25.0
 
 require (
+	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/stretchr/testify v1.11.1
 	github.com/zenizh/go-capturer v0.0.0-20211219060012-52ea6c8fed04
+	modernc.org/tk9.0 v1.75.3
 )
 
 require (
-	github.com/PuerkitoBio/goquery v1.12.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -21,7 +22,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	golang.org/x/image v0.36.0 // indirect
+	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -52,6 +53,5 @@ require (
 	modernc.org/sortutil v1.2.1 // indirect
 	modernc.org/strutil v1.2.1 // indirect
 	modernc.org/tcl9.0 v0.17.5 // indirect
-	modernc.org/tk9.0 v1.75.3 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
