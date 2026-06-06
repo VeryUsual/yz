@@ -78,6 +78,12 @@ type WhileLoop struct {
 	Contents   []any
 }
 
+type GoThruLoop struct {
+	ArrayVar   string
+	Contents   []any
+	IterVar    string
+}
+
 type Function struct {
 	Name       string
 	Parameters map[string]string
@@ -85,7 +91,7 @@ type Function struct {
 	Visibility string
 }
 
-type FuncCallStatement struct {
+type FuncCallStatement struct { 
 	Name       string
 	Parameters map[string]any
 }
@@ -97,7 +103,7 @@ type FuncCallExpr struct {
 
 type Program struct {
 	statements []any
-	variables  map[string]string
+	variables  map[string]any
 	functions  map[string]Function
 }
 
@@ -186,6 +192,10 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"WHILE", word})
 			case "break":
 				tokens = append(tokens, Token{"BREAK", word})
+			case "gothru":
+				tokens = append(tokens, Token{"GOTHRU", word})
+			case "as":
+				tokens = append(tokens, Token{"AS", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -275,11 +285,11 @@ func lexer(src string, verbose *bool) []Token {
 type Parser struct {
 	tokens     []Token
 	pos        int
-	variables  map[string]string
+	variables  map[string]any
 	functions  map[string]Function
 }
 
-func new_parser(tokens []Token, variables map[string]string, functions map[string]Function) *Parser {
+func new_parser(tokens []Token, variables map[string]any, functions map[string]Function) *Parser {
 	return &Parser{tokens: tokens, pos: 0, variables: variables, functions: functions}
 }
 
@@ -333,6 +343,8 @@ func (p *Parser) statement() any {
 		return p.while_statement()
 	} else if p.cur().Type == "BREAK" {
 		return p.break_statement()
+	} else if p.cur().Type == "GOTHRU" {
+		return p.gothru_statement()
 	} else {
 		log.Fatalf("Unexpected statement token: %s", p.cur().Type)
 		os.Exit(0)
@@ -426,6 +438,23 @@ func (p *Parser) while_statement() WhileLoop {
 	}
 
 	return WhileLoop{Comparison{Left: expr1, Operator: comparison_operator.Type, Right: expr2}, stmts}
+}
+
+func (p *Parser) gothru_statement() GoThruLoop {
+	p.eat("GOTHRU")
+	array := p.eat("IDENT").Value
+	p.eat("AS")
+	itervar := p.eat("IDENT").Value
+
+	p.eat("LBRACE")
+
+	stmts := []any{}
+	for p.cur().Type != "RBRACE" {
+		stmts = append(stmts, p.statement())
+	}
+	p.eat("RBRACE")
+
+	return GoThruLoop{array, stmts, itervar}
 }
 
 func (p *Parser) func_statement() Function {
@@ -590,9 +619,9 @@ func (p *Parser) mul_expr() any {
 	return node
 }
 
-func func_call_and_return(call FuncCallExpr, variables map[string]string, functions map[string]Function) string {
+func func_call_and_return(call FuncCallExpr, variables map[string]any, functions map[string]Function) any {
 	if fn, exists := functions[call.Name]; exists {
-		func_vars := make(map[string]string)
+		func_vars := make(map[string]any)
         for key, value := range variables {
             func_vars[key] = value
         }
@@ -666,7 +695,7 @@ func run(program *Program) {
 	}
 }
 
-func run_statement(stmt any, variables map[string]string, functions map[string]Function) (string, error) {
+func run_statement(stmt any, variables map[string]any, functions map[string]Function) (any, error) {
 	switch s := stmt.(type) {
 	case Let:
 		value := eval_expr(s.Value, variables, functions)
@@ -706,7 +735,7 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 		return "", nil
 	case FuncCallStatement:
 		if fn, exists := functions[s.Name]; exists {
-			func_vars := make(map[string]string)
+			func_vars := make(map[string]any)
 
 			for key, value := range variables {
 				func_vars[key] = value
@@ -764,7 +793,7 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 
 		verbose := false
 		tokens := lexer(string(library_contents), &verbose)
-		parser := new_parser(tokens, make(map[string]string), make(map[string]Function))
+		parser := new_parser(tokens, make(map[string]any), make(map[string]Function))
 		program := parser.parse()
 		run(&program)
 		for _, f := range program.functions {
@@ -776,19 +805,37 @@ func run_statement(stmt any, variables map[string]string, functions map[string]F
 	case YZInvokeStmt:
 		parameters := make(map[string]string)
 		for k, v := range s.Parameters {
-			parameters[k] = eval_expr(v, variables, functions)
+			parameters[k] = eval_expr(v, variables, functions).(string)
 		}
 		variables[s.return_var] = handle_yz_invoke(s, parameters)
 		return "", nil
 	case BreakStmt:
 		return "", ErrorBreak
+	case GoThruLoop:
+		array := variables[s.ArrayVar]
+		switch a := array.(type) {
+			case []string:
+				for _, i := range a {
+					variables[s.IterVar] = i
+					for _, thenStmt := range s.Contents {
+						if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
+							return "", nil
+						}
+					}
+					variables[s.IterVar] = ""
+				}
+			default:
+				log.Fatalf("Unexpected array type in gothru statement: %s", reflect.TypeOf(array))
+		}
+
+		return "", nil
 	default:
 		log.Fatalf("Unknown statement:\nType: %s\nValue: %s\n\n", reflect.TypeOf(s).String(), s)
 		return "", nil
 	}
 }
 
-func handle_yz_invoke(s YZInvokeStmt, params map[string]string) string {
+func handle_yz_invoke(s YZInvokeStmt, params map[string]string) any {
 	function := s.func_to_invoke
 
 	if strings.HasPrefix(function, "_yz_cmd_") {
@@ -841,25 +888,28 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) string {
 				log.Fatal(err)
 			}
 
-			doc.Find("*").Each(func(i int, s *goquery.Selection) {
-				fmt.Println(goquery.NodeName(s))
-				fmt.Println(s.Text())
+			result := []string{}
 
+			doc.Find("*").Each(func(i int, s *goquery.Selection) {
+				result = append(result, goquery.NodeName(s))
+				result = append(result, strings.TrimSpace(s.Text()))
 				for _, n := range s.Nodes {
 					for _, a := range n.Attr {
-						fmt.Println(a.Key, a.Val)
+						result = append(result, a.Key)
+						result = append(result, a.Val)
 					}
 				}
+				result = append(result, ".")
 			})
 
-			return ""
+			return result
 
 		default:
 			return "";
 	}
 }
 
-func eval_random_expr(s string, variables map[string]string, functions map[string]Function) string {
+func eval_random_expr(s string, variables map[string]any, functions map[string]Function) any {
 	verbose := false
 	tokens := lexer(s, &verbose)
     parser := new_parser(tokens, variables, functions)
@@ -867,7 +917,7 @@ func eval_random_expr(s string, variables map[string]string, functions map[strin
     return eval_expr(expr, variables, functions)
 }
 
-func eval_expr(expr any, variables map[string]string, functions map[string]Function) string {
+func eval_expr(expr any, variables map[string]any, functions map[string]Function) any {
 	switch e := expr.(type) {
 	case Num:
 		return strconv.Itoa(e.Value)
@@ -877,7 +927,7 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 		string_value := re.ReplaceAllStringFunc(e.Value, func(match string) string {
 			submatches := re.FindStringSubmatch(match)
 			if len(submatches) > 1 {
-				return eval_random_expr(submatches[1], variables, functions) // second value of submatches is the content inside of the braces
+				return eval_random_expr(submatches[1], variables, functions).(string) // second value of submatches is the content inside of the braces
 			}
 			return match
 		})
@@ -898,8 +948,8 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 		case "DOUBLE_EQUAL":
 			condition = expr1 == expr2
 		case "LESS_THAN_EQUAL":
-			if e1, err := strconv.Atoi(expr1); err == nil {
-				if e2, err := strconv.Atoi(expr2); err == nil {
+			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
 					condition = e1 <= e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -908,8 +958,8 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 				log.Fatalf("1st expression in operation not a number.")
 			}
 		case "GREATER_EQUAL":
-			if e1, err := strconv.Atoi(expr1); err == nil {
-				if e2, err := strconv.Atoi(expr2); err == nil {
+			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
 					condition = e1 >= e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -918,8 +968,8 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 				log.Fatalf("1st expression in operation not a number.")
 			}
 		case "LESS_THAN":
-			if e1, err := strconv.Atoi(expr1); err == nil {
-				if e2, err := strconv.Atoi(expr2); err == nil {
+			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
 					condition = e1 < e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -928,8 +978,8 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 				log.Fatalf("1st expression in operation not a number.")
 			}
 		case "GREATER":
-			if e1, err := strconv.Atoi(expr1); err == nil {
-				if e2, err := strconv.Atoi(expr2); err == nil {
+			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
 					condition = e1 > e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -943,16 +993,16 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 
 		return strconv.FormatBool(condition)
 	case Add:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions).(string))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions).(string))
 		return strconv.Itoa(left + right)
 	case Sub:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions).(string))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions).(string))
 		return strconv.Itoa(left - right)
 	case Mul:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions))
+		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions).(string))
+		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions).(string))
 		return strconv.Itoa(left * right)
 	case FuncCallExpr:
 		return func_call_and_return(e, variables, functions)
@@ -966,7 +1016,7 @@ func eval_expr(expr any, variables map[string]string, functions map[string]Funct
 
 func run_program(source string, verbose *bool) {
 	tokens := lexer(source, verbose)
-	variables := make(map[string]string)
+	variables := make(map[string]any)
 	functions := make(map[string]Function)
 	parser := new_parser(tokens, variables, functions)
 	program := parser.parse()
@@ -979,7 +1029,7 @@ func main() {
 
 	fmt.Print("YZ interpeter Output:\n\n")
 
-	data, err := os.ReadFile("examples/5.yz")
+	data, err := os.ReadFile("examples/browser.yz")
 	if err != nil {
 		log.Fatal(err)
 	}

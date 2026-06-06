@@ -1,0 +1,56 @@
+import stdlib;
+import requests;
+import guitk;
+
+let r = Get(url "https://html.duckduckgo.com/html/");
+
+Activate_Theme(theme "azure dark");
+
+let h = ParseHTML(html r);
+
+let i = 1;
+
+let tag = "";
+let innerText = "";
+let attributeKey = "";
+let attributeValue = "";
+
+gothru h as e {
+	if i == 1 {
+		let tag = e;
+	}
+	if i == 2 {
+		let innerText = e;
+	}
+	if i >= 3 {
+		if e == "." {
+			println(tag);
+			println(innerText);
+			println(attributeKey);
+			println(attributeValue);
+			println("");
+
+			if tag == "a" {
+				Pack(widget Label(text innerText));
+			}
+			if tag == "input" {
+				Pack(widget Label(text attributeValue));
+			}
+
+			let i = 0;
+			let tag = "";
+			let innerText = "";
+			let attributeKey = "";
+			let attributeValue = "";
+		} else {
+			if attributeKey == "" {
+				let attributeKey = e;
+			} else {
+				let attributeValue = e;
+			}
+		}
+	}
+	let i = i + 1;
+}
+
+App_Loop();
