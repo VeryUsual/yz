@@ -1,5 +1,5 @@
 func Label(text) public {
-    return "widget=label|;|text={{text}}";
+    return "widget=======label|;|text======={{text}}";
 }
 
 func Pack(widget) public {

@@ -1,0 +1,15 @@
+import stdlib;
+import requests;
+import guitk;
+
+let r = Get(url "https://html.duckduckgo.com/html/");
+
+Activate_Theme(theme "azure dark");
+
+Pack(widget Label(text r));
+
+println(r);
+
+ParseHTML(html r);
+
+App_Loop();

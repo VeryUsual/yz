@@ -13,14 +13,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"math/rand/v2"
+	"net/http"
 	"os"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
+	"golang.org/x/net/html"
+
 	. "modernc.org/tk9.0"
 	_ "modernc.org/tk9.0/themes/azure"
 )
@@ -803,7 +807,7 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) string {
 			paramss := make(map[string]string)
 
 			for _, v := range strings.Split(params["widget"], "|;|") {
-				parts := strings.Split(v, "=")
+				parts := strings.Split(v, "=======")
 				if len(parts) == 2 {
 					paramss[parts[0]] = parts[1]
 				}
@@ -817,6 +821,48 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]string) string {
 		case "guitk_loop":
 			App.Wait()
 			return "";
+		case "http_request":
+			resp, err := http.Get(params["url"])
+			if err != nil {
+				panic(err)
+			}
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			return string(body);
+		case "parse_html":
+			htmlcontent := params["html"]
+			doc, err := html.Parse(strings.NewReader(htmlcontent))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			var traverse func(*html.Node)
+			traverse = func(n *html.Node) {
+				if n.Type == html.ElementNode {
+					println(n.Data)
+					if len(n.Attr) > 0 {
+						for _, a := range n.Attr {
+							println(a.Key, a.Val)
+						}
+					}
+				} else if n.Type == html.TextNode {
+					println(strings.TrimSpace(n.Data))
+				}
+
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					traverse(c)
+				}
+			}
+
+			traverse(doc)
+
+			return ""
+
 		default:
 			return "";
 	}
@@ -942,7 +988,7 @@ func main() {
 
 	fmt.Print("YZ interpeter Output:\n\n")
 
-	data, err := os.ReadFile("examples/gui.yz")
+	data, err := os.ReadFile("examples/5.yz")
 	if err != nil {
 		log.Fatal(err)
 	}

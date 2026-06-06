@@ -1,0 +1,9 @@
+func Get(url) public {
+	_yz_invoke(_yz_cmd_http_request, response, url url);
+	return response;
+}
+
+func ParseHTML(html) public {
+	_yz_invoke(_yz_cmd_parse_html, parsedhtml);
+	return parsedhtml;
+}
