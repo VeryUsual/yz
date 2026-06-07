@@ -2,7 +2,7 @@ import stdlib;
 import requests;
 import guitk;
 
-let r = Get(url "https://html.duckduckgo.com/html");
+let r = Get(url "https://html.duckduckgo.com/lite");
 
 Activate_Theme(theme "azure dark");
 
@@ -25,7 +25,7 @@ gothru h as e {
 	}
 	if i >= 3 {
 		if e == "." {
-			if tag == "a" {
+			if tag == "a" or tag == "span" or tag == "p" {
 				Pack(widget Label(text innerText));
 			}
 
@@ -37,10 +37,10 @@ gothru h as e {
 				if tag == "input" {
 					if key == "type" {
 						if value == "text" {
-							Pack(widget Label(text "TEXTBOX"));
+							Pack(widget InputBox(width 30));
 						}
 						if value == "submit" {
-							Pack(widget Label(text "BUTTON"));
+							Pack(widget Button(text "BUTTON"));
 						}
 					}
 				}

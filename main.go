@@ -196,6 +196,8 @@ func lexer(src string, verbose *bool) []Token {
 				tokens = append(tokens, Token{"GOTHRU", word})
 			case "as":
 				tokens = append(tokens, Token{"AS", word})
+			case "or":
+				tokens = append(tokens, Token{"OR", word})
 			default:
 				tokens = append(tokens, Token{"IDENT", word})
 			}
@@ -371,6 +373,8 @@ func (p *Parser) println_statement() Print {
 }
 
 func (p *Parser) if_statement() IfStmt {
+	expressions := []Comparison{}
+
 	p.eat("IF")
 	expr1 := p.expr()
 	comparison_operator := Token{}
@@ -381,6 +385,27 @@ func (p *Parser) if_statement() IfStmt {
 		log.Fatalf("%s is not a comparison operator", p.cur().Type)
 	}
 	expr2 := p.expr()
+
+	if p.cur().Type == "OR" {
+		p.eat("OR")
+		expressions = append(expressions, Comparison{Left: expr1, Operator: comparison_operator.Type, Right: expr2})
+
+		for p.cur().Type != "LBRACE" {
+			expr1 := p.expr()
+			comparison_operator := Token{}
+			switch p.cur().Type {
+			case "DOUBLE_EQUAL", "LESS_THAN_EQUAL", "LESS_THAN", "GREATER_EQUAL", "GREATER":
+				comparison_operator = p.eat(p.cur().Type)
+			default:
+				log.Fatalf("%s is not a comparison operator", p.cur().Type)
+			}
+			expr2 := p.expr()
+			expressions = append(expressions, Comparison{Left: expr1, Operator: comparison_operator.Type, Right: expr2})
+			if p.cur().Type == "OR" {
+				p.eat("OR")
+			}
+		}
+	}
 
 	p.eat("LBRACE")
 
@@ -402,7 +427,11 @@ func (p *Parser) if_statement() IfStmt {
 		p.eat("RBRACE")
 	}
 
-	return IfStmt{Comparison{Left: expr1, Operator: comparison_operator.Type, Right: expr2}, thenStmts, elseStmts}
+	if len(expressions) > 0 {
+		return IfStmt{expressions, thenStmts, elseStmts}
+	} else {
+		return IfStmt{Comparison{Left: expr1, Operator: comparison_operator.Type, Right: expr2}, thenStmts, elseStmts}
+	}
 }
 
 func (p *Parser) while_statement() WhileLoop {
@@ -870,8 +899,14 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any) any {
 				}
 			}
 
-			if paramss["widget"] == "label" {
-				Pack(Label(Txt(paramss["text"])))
+			switch paramss["widget"] {
+				case "label":
+					Pack(Label(Txt(paramss["text"])))
+				case "inputbox":
+					width, _ := strconv.Atoi(paramss["width"])
+					Pack(TEntry(Textvariable(""), Background(White), Width(width)))
+				case "button":
+					Pack(TButton(Txt(paramss["text"])))
 			}
 
 			return "";
@@ -1044,6 +1079,68 @@ func eval_expr(expr any, variables map[string]any, functions map[string]Function
 		}
 
 		return strconv.FormatBool(condition)
+	case []Comparison:
+		conditions := []bool{}
+
+		for _, c := range e {
+			expr1 := eval_expr(c.Left, variables, functions)
+			expr2 := eval_expr(c.Right, variables, functions)
+
+			switch c.Operator {
+			case "DOUBLE_EQUAL":
+				conditions = append(conditions, expr1 == expr2)
+			case "LESS_THAN_EQUAL":
+				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+						conditions = append(conditions, e1 <= e2)
+					} else {
+						log.Fatalf("2nd expression in operation not a number.")
+					}
+				} else {
+					log.Fatalf("1st expression in operation not a number.")
+				}
+			case "GREATER_EQUAL":
+				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+						conditions = append(conditions, e1 >= e2)
+					} else {
+						log.Fatalf("2nd expression in operation not a number.")
+					}
+				} else {
+					log.Fatalf("1st expression in operation not a number.")
+				}
+			case "LESS_THAN":
+				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+						conditions = append(conditions, e1 < e2)
+					} else {
+						log.Fatalf("2nd expression in operation not a number.")
+					}
+				} else {
+					log.Fatalf("1st expression in operation not a number.")
+				}
+			case "GREATER":
+				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
+					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+						conditions = append(conditions, e1 > e2)
+					} else {
+						log.Fatalf("2nd expression in operation not a number.")
+					}
+				} else {
+					log.Fatalf("1st expression in operation not a number.")
+				}
+			default:
+				log.Fatalf("%s is not a comparison operator", c.Operator)
+			}
+		}
+
+		for _, condition := range conditions {
+			if condition == true {
+				return strconv.FormatBool(true)
+			}
+		}
+
+		return strconv.FormatBool(false)
 	case Add:
 		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions).(string))
 		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions).(string))
