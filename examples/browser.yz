@@ -2,75 +2,114 @@ import stdlib;
 import requests;
 import guitk;
 
-let r = Get(url "https://html.duckduckgo.com/lite");
+let url = Input();
 
-Activate_Theme(theme "azure dark");
-
-let h = ParseHTML(html r);
-
-let i = 1;
-let c = 1;
-
-let tag = "";
-let innerText = "";
-let attributeKeys = List_Make();
-let attributeValues = List_Make();
-
-gothru h as e {
-	let attributes = Dict_Make();
-
-	if i == 1 {
-		let tag = e;
-	}
-	if i == 2 {
-		let innerText = e;
-	}
-	if i >= 3 {
-		if e == "." {
-			if tag == "a" or tag == "span" or tag == "p" {
-				Pack(widget Label(text innerText));
-			}
-
-			let i = 0;
-			while i < List_Length(list attributeKeys) {
-				let key = List_ValueFromIndex(list attributeKeys, index i);
-				let value = List_ValueFromIndex(list attributeValues, index i);
-
-				Dict_Set(dict attributes, key key, value value);
-
-				let i = i + 1;
-			}
-
-			if tag == "input" {
-				if Dict_Get(dict attributes, key "type") == "text" {
-					Pack(widget InputBox(width 30));
-				}
-				if Dict_Get(dict attributes, key "type") == "submit" {
-					Pack(widget Button(text Dict_Get(dict attributes, key "value")));
-				}
-			}
-
-			let i = 0;
-			let tag = "";
-			let innerText = "";
-			let attributeKeys = List_Make();
-			let attributeValues = List_Make();
-		} else {
-			if c == 1 {
-				let attributeKeys = List_Append(list attributeKeys, value e);
-			}
-			if c == 2 {
-				let attributeValues = List_Append(list attributeValues, value e);
-			}
-
-			if c == 1 {
-				let c = 2;
-			} else {
-				let c = 1;
-			}
-		}
-	}
-	let i = i + 1;
+if url == "" {
+	let url = "https://html.duckduckgo.com/lite";
 }
 
+func navToLink(btn_text) {
+	let startswithhttps = StartsWith(s btn_text, prefix "https://");
+	if startswithhttps == true {
+		browse(url btn_text);
+	} else {
+		let startswithslash = StartsWith(s btn_text, prefix "/");
+		if startswithslash == true {
+			browse(url "{{current_url}}{{btn_text}}");
+		}
+	}
+}
+
+func browse(url) {
+	let current_url = url;
+
+	let r = Get(url url);
+
+	Activate_Theme(theme "azure dark");
+
+	let h = ParseHTML(html r);
+
+	let i = 1;
+	let c = 1;
+
+	let tag = "";
+	let innerText = "";
+	let attributeKeys = List_Make();
+	let attributeValues = List_Make();
+
+	gothru h as e {
+		let attributes = Dict_Make();
+
+		if i == 1 {
+			let tag = e;
+		}
+		if i == 2 {
+			let innerText = e;
+		}
+		if i >= 3 {
+			if e == "." {
+				if tag == "title" {
+					Set_Win_Title(title innerText);
+				}
+
+				if tag == "span" or tag == "p" {
+					Pack(widget Label(text innerText));
+				}
+
+				if tag == "br" {
+					Pack(widget Label(text ""));
+				}
+
+				let i = 0;
+				while i < List_Length(list attributeKeys) {
+					let key = List_ValueFromIndex(list attributeKeys, index i);
+					let value = List_ValueFromIndex(list attributeValues, index i);
+
+					Dict_Set(dict attributes, key key, value value);
+
+					let i = i + 1;
+				}
+
+				if tag == "input" {
+					if Dict_Get(dict attributes, key "type") == "text" {
+						Pack(widget InputBox(width 30));
+					}
+					if Dict_Get(dict attributes, key "type") == "submit" {
+						Pack(widget Button(text Dict_Get(dict attributes, key "value"), onClickFunc ""));
+					}
+				}
+
+				if tag == "a" {
+					let href = Dict_Get(dict attributes, key "href");
+					if href == Null() {
+						let href = "";
+					}
+					Pack(widget Button(text "{{innerText}} ({{href}})", onClickFunc "navToLink"));
+				}
+
+				let i = 0;
+				let tag = "";
+				let innerText = "";
+				let attributeKeys = List_Make();
+				let attributeValues = List_Make();
+			} else {
+				if c == 1 {
+					let attributeKeys = List_Append(list attributeKeys, value e);
+				}
+				if c == 2 {
+					let attributeValues = List_Append(list attributeValues, value e);
+				}
+
+				if c == 1 {
+					let c = 2;
+				} else {
+					let c = 1;
+				}
+			}
+		}
+		let i = i + 1;
+	}
+}
+
+browse(url url);
 App_Loop();

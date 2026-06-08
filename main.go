@@ -10,6 +10,7 @@ package main
 // Imports
 
 import (
+	"bufio"
 	"errors"
 	"flag"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
 	"github.com/PuerkitoBio/goquery"
 
 	. "modernc.org/tk9.0"
@@ -61,6 +63,7 @@ type Mul struct {
 type Let struct {
 	Name       string
 	Value      any
+	Visibility string
 }
 
 type Print struct {
@@ -91,6 +94,11 @@ type Function struct {
 	Visibility string
 }
 
+type YZVariable struct {
+	Value      any
+	Visibility string
+}
+
 type FuncCallStatement struct { 
 	Name       string
 	Parameters map[string]any
@@ -103,7 +111,7 @@ type FuncCallExpr struct {
 
 type Program struct {
 	statements []any
-	variables  map[string]any
+	variables  map[string]YZVariable
 	functions  map[string]Function
 }
 
@@ -287,11 +295,11 @@ func lexer(src string, verbose *bool) []Token {
 type Parser struct {
 	tokens     []Token
 	pos        int
-	variables  map[string]any
+	variables  map[string]YZVariable
 	functions  map[string]Function
 }
 
-func new_parser(tokens []Token, variables map[string]any, functions map[string]Function) *Parser {
+func new_parser(tokens []Token, variables map[string]YZVariable, functions map[string]Function) *Parser {
 	return &Parser{tokens: tokens, pos: 0, variables: variables, functions: functions}
 }
 
@@ -357,10 +365,20 @@ func (p *Parser) statement() any {
 func (p *Parser) let_statement() Let {
 	p.eat("LET")
 	name := p.eat("IDENT").Value
+
+	visibility := "private"
+	if p.cur().Type == "PUBLIC" {
+		visibility = "public"
+		p.eat(p.cur().Type)
+	} else if p.cur().Type == "PRIVATE" {
+		visibility = "private"
+		p.eat(p.cur().Type)
+	}
+
 	p.eat("EQUAL")
 	value := p.expr()
 	p.eat("SEMI")
-	return Let{name, value}
+	return Let{name, value, visibility}
 }
 
 func (p *Parser) println_statement() Print {
@@ -648,18 +666,18 @@ func (p *Parser) mul_expr() any {
 	return node
 }
 
-func func_call_and_return(call FuncCallExpr, variables map[string]any, functions map[string]Function) any {
+func func_call_and_return(call FuncCallExpr, variables map[string]YZVariable, functions map[string]Function) any {
 	if fn, exists := functions[call.Name]; exists {
-		func_vars := make(map[string]any)
+		func_vars := make(map[string]YZVariable)
         for key, value := range variables {
             func_vars[key] = value
         }
         for param, param_value := range call.Parameters {
             if _, ok := fn.Parameters[param]; ok {
-                func_vars[param] = eval_expr(param_value, variables, functions)
+                func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
             } else {
                 if fn.Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
-                    func_vars[param] = eval_expr(param_value, variables, functions)
+                    func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
                 } else {
                     log.Fatalf("Call to function %s failed due to non-existent parameter %s without _yz_arbitrary_params_allowed_ flag.", call.Name, param)
                 }
@@ -724,11 +742,11 @@ func run(program *Program) {
 	}
 }
 
-func run_statement(stmt any, variables map[string]any, functions map[string]Function) (any, error) {
+func run_statement(stmt any, variables map[string]YZVariable, functions map[string]Function) (any, error) {
 	switch s := stmt.(type) {
 	case Let:
 		value := eval_expr(s.Value, variables, functions)
-		variables[s.Name] = value
+		variables[s.Name] = YZVariable{ value, s.Visibility }
 		return "", nil
 	case Print:
 		value := eval_expr(s.Expr, variables, functions)
@@ -764,7 +782,7 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 		return "", nil
 	case FuncCallStatement:
 		if fn, exists := functions[s.Name]; exists {
-			func_vars := make(map[string]any)
+			func_vars := make(map[string]YZVariable)
 
 			for key, value := range variables {
 				func_vars[key] = value
@@ -772,10 +790,10 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 
 			for param, param_value := range s.Parameters {
 				if _, ok := fn.Parameters[param]; ok {
-					func_vars[param] = eval_expr(param_value, variables, functions)
+					func_vars[param] = YZVariable{ eval_expr(param_value, variables, functions), "private" }
 				} else {
 					if functions[s.Name].Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
-						func_vars[param] = eval_expr(param_value, variables, functions)
+						func_vars[param] =  YZVariable{ eval_expr(param_value, variables, functions), "private" }
 					} else {
 						log.Fatalf("Call to function %s failed due to non-existent parameter %s without _yz_arbitrary_params_allowed_ flag.", param, s.Name)
 					}
@@ -822,12 +840,17 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 
 		verbose := false
 		tokens := lexer(string(library_contents), &verbose)
-		parser := new_parser(tokens, make(map[string]any), make(map[string]Function))
+		parser := new_parser(tokens, make(map[string]YZVariable), make(map[string]Function))
 		program := parser.parse()
 		run(&program)
 		for _, f := range program.functions {
 			if f.Visibility == "public" {
 				functions[f.Name] = Function{f.Name, f.Parameters, f.Contents, f.Visibility}
+			}
+		}
+		for k, v := range program.variables {
+			if v.Visibility == "public" {
+				variables[k] = YZVariable{ v.Value, "public" }
 			}
 		}
 		return "", nil
@@ -836,32 +859,32 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 		for k, v := range s.Parameters {
 			parameters[k] = eval_expr(v, variables, functions)
 		}
-		variables[s.return_var] = handle_yz_invoke(s, parameters)
+		variables[s.return_var] = YZVariable{ handle_yz_invoke(s, parameters, variables, functions), "private" }
 		return "", nil
 	case BreakStmt:
 		return "", ErrorBreak
 	case GoThruLoop:
 		array := variables[s.ArrayVar]
-		switch a := array.(type) {
+		switch a := array.Value.(type) {
 			case []string:
 				for _, i := range a {
-					variables[s.IterVar] = i
+					variables[s.IterVar] = YZVariable{ i, "private" }
 					for _, thenStmt := range s.Contents {
 						if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
 							return "", nil
 						}
 					}
-					variables[s.IterVar] = ""
+					variables[s.IterVar] = YZVariable{ "", "private" }
 				}
 			case []any:
 				for _, i := range a {
-					variables[s.IterVar] = i
+					variables[s.IterVar] = YZVariable{ i, "private" }
 					for _, thenStmt := range s.Contents {
 						if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
 							return "", nil
 						}
 					}
-					variables[s.IterVar] = ""
+					variables[s.IterVar] = YZVariable{ "", "private" }
 				}
 			default:
 				log.Fatalf("Unexpected array type in gothru statement: %s", reflect.TypeOf(array))
@@ -874,7 +897,7 @@ func run_statement(stmt any, variables map[string]any, functions map[string]Func
 	}
 }
 
-func handle_yz_invoke(s YZInvokeStmt, params map[string]any) any {
+func handle_yz_invoke(s YZInvokeStmt, params map[string]any, variables map[string]YZVariable, functions map[string]Function) any {
 	function := s.func_to_invoke
 
 	if strings.HasPrefix(function, "_yz_cmd_") {
@@ -906,13 +929,26 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any) any {
 					width, _ := strconv.Atoi(paramss["width"])
 					Pack(TEntry(Textvariable(""), Background(White), Width(width)))
 				case "button":
-					Pack(TButton(Txt(paramss["text"])))
+					Pack(TButton(Txt(paramss["text"]), Command(func() {
+						params := make(map[string]any)
+						var bracket_rgx = regexp.MustCompile(`\((.*?)\)`)
+						params["btn_text"] = Str{bracket_rgx.FindStringSubmatch(paramss["text"])[1]}
+						run_statement(FuncCallStatement{paramss["onClickFunc"], params}, variables, functions)
+					})))
 			}
 
 			return "";
 		case "guitk_loop":
 			App.Wait()
 			return "";
+		case "guitk_set_title":
+			App.WmTitle(params["title"].(string))
+			return "";
+		case "guitk_quit_gui":
+			Destroy(App)
+			return 200
+		case "startswith":
+			return strconv.FormatBool(strings.HasPrefix(params["s"].(string), params["prefix"].(string)))
 		case "http_request":
 			req, err := http.NewRequest("GET", params["url"].(string), nil)
 			if err != nil {
@@ -1010,12 +1046,18 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any) any {
 				log.Fatalf("Failed: Trying to get length of array of type %T.", params["list"])
 			}
 			return 0
+		case "get_input":
+			scanner := bufio.NewScanner(os.Stdin)
+			scanner.Scan()
+			return scanner.Text()
+		case "null":
+			return nil
 		default:
 			return "";
 	}
 }
 
-func eval_random_expr(s string, variables map[string]any, functions map[string]Function) any {
+func eval_random_expr(s string, variables map[string]YZVariable, functions map[string]Function) any {
 	verbose := false
 	tokens := lexer(s, &verbose)
     parser := new_parser(tokens, variables, functions)
@@ -1023,7 +1065,7 @@ func eval_random_expr(s string, variables map[string]any, functions map[string]F
     return eval_expr(expr, variables, functions)
 }
 
-func eval_expr(expr any, variables map[string]any, functions map[string]Function) any {
+func eval_expr(expr any, variables map[string]YZVariable, functions map[string]Function) any {
 	switch e := expr.(type) {
 	case Num:
 		return strconv.Itoa(e.Value)
@@ -1041,7 +1083,7 @@ func eval_expr(expr any, variables map[string]any, functions map[string]Function
 		return string_value
 	case Var:
 		if _, ok := variables[e.Name]; ok {
-			return variables[e.Name]
+			return variables[e.Name].Value
 		} else {
 			log.Fatalf("Reference of non-existent variable %s in expression %s", e.Name, expr)
 		}
@@ -1184,7 +1226,7 @@ func eval_expr(expr any, variables map[string]any, functions map[string]Function
 
 func run_program(source string, verbose *bool) {
 	tokens := lexer(source, verbose)
-	variables := make(map[string]any)
+	variables := make(map[string]YZVariable)
 	functions := make(map[string]Function)
 	parser := new_parser(tokens, variables, functions)
 	program := parser.parse()

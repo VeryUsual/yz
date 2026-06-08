@@ -1,3 +1,5 @@
+let true public = "true";
+
 func str(val) public {
 	return val;
 }
@@ -51,4 +53,19 @@ func Dict_Set(dict, key, value) public {
 func Dict_Get(dict, key) public {
 	_yz_invoke(_yz_cmd_dict_get, value, dict dict, key key);
 	return value;
+}
+
+func Null() public {
+    _yz_invoke(_yz_cmd_null, null);
+    return null;
+}
+
+func Input() public {
+    _yz_invoke(_yz_cmd_get_input, input);
+    return input;
+}
+
+func StartsWith(s, prefix) public {
+	_yz_invoke(_yz_cmd_startswith, out, s s, prefix prefix);
+	return out;
 }
