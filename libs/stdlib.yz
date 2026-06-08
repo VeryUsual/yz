@@ -37,3 +37,18 @@ func List_Length(list) public {
 	_yz_invoke(_yz_cmd_listlength, out, list list);
 	return out;
 }
+
+func Dict_Make() public {
+	_yz_invoke(_yz_cmd_make_dictionary, dict);
+	return dict;
+}
+
+func Dict_Set(dict, key, value) public {
+	_yz_invoke(_yz_cmd_dict_set, new_dict, dict dict, key key, value value);
+	return new_dict;
+}
+
+func Dict_Get(dict, key) public {
+	_yz_invoke(_yz_cmd_dict_get, value, dict dict, key key);
+	return value;
+}

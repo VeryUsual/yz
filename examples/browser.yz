@@ -17,6 +17,8 @@ let attributeKeys = List_Make();
 let attributeValues = List_Make();
 
 gothru h as e {
+	let attributes = Dict_Make();
+
 	if i == 1 {
 		let tag = e;
 	}
@@ -34,18 +36,18 @@ gothru h as e {
 				let key = List_ValueFromIndex(list attributeKeys, index i);
 				let value = List_ValueFromIndex(list attributeValues, index i);
 
-				if tag == "input" {
-					if key == "type" {
-						if value == "text" {
-							Pack(widget InputBox(width 30));
-						}
-						if value == "submit" {
-							Pack(widget Button(text "BUTTON"));
-						}
-					}
-				}
+				Dict_Set(dict attributes, key key, value value);
 
 				let i = i + 1;
+			}
+
+			if tag == "input" {
+				if Dict_Get(dict attributes, key "type") == "text" {
+					Pack(widget InputBox(width 30));
+				}
+				if Dict_Get(dict attributes, key "type") == "submit" {
+					Pack(widget Button(text Dict_Get(dict attributes, key "value")));
+				}
 			}
 
 			let i = 0;

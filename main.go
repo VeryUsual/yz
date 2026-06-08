@@ -958,6 +958,25 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any) any {
 			return result
 		case "make_list":
 			return []any{}
+		case "make_dictionary":
+			return make(map[string]any)
+		case "dict_set":
+			switch dict := params["dict"].(type) {
+			case map[string]any:
+				dict[params["key"].(string)] = params["value"]
+				return dict
+			default:
+				log.Fatalf("Failed: Trying to set dictionary value on dictionary of type %T", params["dict"])
+			}
+			return ""
+		case "dict_get":
+			switch dict := params["dict"].(type) {
+			case map[string]any:
+				return dict[params["key"].(string)]
+			default:
+				log.Fatalf("Failed: Trying to get value from dictionary of type %T", params["dict"])
+			}
+			return ""
 		case "append_to_list":
 			switch lst := params["list"].(type) {
 			case []any:
