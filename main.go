@@ -1237,9 +1237,15 @@ func main() {
 	verbose := flag.Bool("v", false, "Verbose mode enabled? (true or false) (not required)")
 	flag.Parse()
 
+	if flag.NArg() < 1 {
+		log.Fatalf("Usage: [OPTIONS] FILE")
+	}
+
+	file := flag.Arg(0)
+
 	fmt.Print("YZ interpeter Output:\n\n")
 
-	data, err := os.ReadFile("examples/browser.yz")
+	data, err := os.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
 	}

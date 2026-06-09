@@ -7,7 +7,7 @@ let url = Input();
 if url == "" {
 	let url = "https://html.duckduckgo.com/lite";
 }
-
+ 
 func navToLink(btn_text) {
 	let startswithhttps = StartsWith(s btn_text, prefix "https://");
 	if startswithhttps == true {

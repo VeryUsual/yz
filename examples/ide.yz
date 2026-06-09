@@ -1,0 +1,8 @@
+import stdlib;
+import guitk;
+
+Activate_Theme(theme "azure dark");
+
+Pack(widget Label(text "IDE"));
+
+App_Loop();
