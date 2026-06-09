@@ -1,0 +1,4 @@
+func WriteFile(path, content) public {
+    _yz_invoke(_yz_cmd_fs_write_file, _, path path, content content);
+    return 1;
+}

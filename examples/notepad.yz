@@ -1,5 +1,6 @@
 import stdlib;
 import guitk;
+import fs;
 
 func saveFile(btn_text) {
 	let file_contents = GetContent(widget textbox);

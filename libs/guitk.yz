@@ -36,11 +36,6 @@ func GetContent(widget) public {
     return content;
 }
 
-func WriteFile(path, content) public {
-    _yz_invoke(_yz_cmd_fs_write_file, _, path path, content content);
-    return 1;
-}
-
 func Insert(textbox, text) public {
     _yz_invoke(_yz_cmd_guitk_insert, _, textbox textbox, text text);
     return 1;
