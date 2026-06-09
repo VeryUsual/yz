@@ -1,0 +1,34 @@
+import stdlib;
+import guitk;
+
+func saveFile(btn_text) {
+	let file_contents = GetContent(widget textbox);
+	let file_path = GetContent(widget filepath_label);
+	if file_path == "" {
+		println("filepath is empty");
+	} else {
+		WriteFile(path file_path, content file_contents);
+	}
+}
+
+func openFile(btn_text) {
+	let filepath = OpenFile();
+	let content = ReadFile(path filepath);
+	Clear(textbox textbox);
+	Insert(textbox textbox, text content);
+	SetContent(label filepath_label, text filepath);
+	return 0;
+}
+
+Activate_Theme(theme "azure dark");
+
+Set_Win_Title(title "Notepad");
+
+let filepath_label = Pack(widget Label(text ""));
+let textbox = Pack(widget TextBox());
+
+Pack(widget Button(text "Save", onClickFunc "saveFile"));
+Pack(widget Button(text "Open File", onClickFunc "openFile"));
+Pack(widget Label(text ""));
+
+App_Loop();

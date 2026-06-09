@@ -686,7 +686,7 @@ func func_call_and_return(call FuncCallExpr, variables map[string]YZVariable, fu
         for name := range fn.Parameters {
             if name != "_yz_arbitrary_params_allowed_" {
                 if _, ok := call.Parameters[name]; !ok {
-                    log.Fatalf("Missing required parameter %s", name)
+                    log.Fatalf("Missing required parameter %s on function %s", name, fn.Name)
                 }
             }
         }
@@ -922,22 +922,76 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any, variables map[strin
 				}
 			}
 
+			var widget any = nil
+
 			switch paramss["widget"] {
 				case "label":
-					Pack(Label(Txt(paramss["text"])))
+					widget = Label(Txt(paramss["text"]))
+					Pack(widget.(*LabelWidget))
 				case "inputbox":
 					width, _ := strconv.Atoi(paramss["width"])
 					Pack(TEntry(Textvariable(""), Background(White), Width(width)))
+				case "textbox":
+					widget = Text(Height(14), Width(60))
+					Pack(widget.(*TextWidget))
 				case "button":
 					Pack(TButton(Txt(paramss["text"]), Command(func() {
 						params := make(map[string]any)
 						var bracket_rgx = regexp.MustCompile(`\((.*?)\)`)
-						params["btn_text"] = Str{bracket_rgx.FindStringSubmatch(paramss["text"])[1]}
+						if len(bracket_rgx.FindStringSubmatch(paramss["text"])) < 1 {
+							params["btn_text"] = Str{paramss["text"]}
+						} else {
+							params["btn_text"] = Str{bracket_rgx.FindStringSubmatch(paramss["text"])[1]}
+						}
 						run_statement(FuncCallStatement{paramss["onClickFunc"], params}, variables, functions)
 					})))
 			}
 
-			return "";
+			return widget;
+		case "guitk_open_file":
+			path := GetOpenFile()[0]
+			return path
+		case "guitk_read_file":
+			file, err := os.Open(params["path"].(string))
+			if err != nil {
+				log.Fatalf("Error opening file: %s", err)
+				return "ERR_OPEN_FILE"
+			}
+			defer file.Close()
+
+			data, err := io.ReadAll(file)
+			if err != nil {
+				log.Fatalf("Error reading file: %s", err)
+				return "ERR_READ_FILE"
+			}
+
+			return string(data)
+		case "guitk_insert":
+			params["textbox"].(*TextWidget).Insert("end", params["text"].(string));
+			return 1;
+		case "guitk_clear":
+			params["textbox"].(*TextWidget).Delete("1.0", "end")
+			return 1;
+		case "guitk_set_content":
+			params["label"].(*LabelWidget).Configure(Txt(params["text"].(string)))
+			return 1;
+		case "guitk_get_content":
+			switch w := params["widget"].(type) {
+			case *TextWidget:
+				return w.Get("1.0", "end-1c")
+			case *LabelWidget:
+				return w.Txt()
+			default:
+				return ""
+			}
+		case "fs_write_file":
+			f, err := os.Create(params["path"].(string))
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer f.Close()
+			f.WriteString(params["content"].([]string)[0])
+			return 1
 		case "guitk_loop":
 			App.Wait()
 			return "";

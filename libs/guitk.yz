@@ -6,13 +6,58 @@ func InputBox(width) public {
     return "widget=======inputbox|;|width======={{width}}";
 }
 
+func TextBox() public {
+    return "widget=======textbox";
+}
+
+func OpenFile() public {
+    _yz_invoke(_yz_cmd_guitk_open_file, path);
+    if path == "ERR_OPEN_FILE" {
+        println("Error opening file.");
+    }
+    return path;
+}
+
+func ReadFile(path) public {
+    _yz_invoke(_yz_cmd_guitk_read_file, content, path path);
+    if content == "ERR_READ_FILE" {
+        println("Error reading file.");
+    }
+    return content;
+}
+
+func SetContent(label, text) public {
+    _yz_invoke(_yz_cmd_guitk_set_content, _, label label, text text);
+    return 1;
+}
+
+func GetContent(widget) public {
+    _yz_invoke(_yz_cmd_guitk_get_content, content, widget widget);
+    return content;
+}
+
+func WriteFile(path, content) public {
+    _yz_invoke(_yz_cmd_fs_write_file, _, path path, content content);
+    return 1;
+}
+
+func Insert(textbox, text) public {
+    _yz_invoke(_yz_cmd_guitk_insert, _, textbox textbox, text text);
+    return 1;
+}
+
+func Clear(textbox) public {
+    _yz_invoke(_yz_cmd_guitk_clear, _, textbox textbox);
+    return 1;
+}
+
 func Button(text, onClickFunc) public {
     return "widget=======button|;|text======={{text}}|;|onClickFunc======={{onClickFunc}}";
 }
 
 func Pack(widget) public {
-    _yz_invoke(_yz_cmd_guitk_pack, _, widget widget);
-    return widget;
+    _yz_invoke(_yz_cmd_guitk_pack, out, widget widget);
+    return out;
 }
 
 func App_Loop() public {
