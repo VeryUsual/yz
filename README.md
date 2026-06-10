@@ -16,18 +16,19 @@ YZ is a fast, easy-to-learn, robust programming language. Its compiler is writte
 - HTTP request library
 - Cross-platform compatable
 
-## Examples
-### Hello world
-```
-println("Hello, world!");
-```
-
 ## Installation
 ```bash
 git clone https://github.com/VeryUsual/yz
 go build main.go
 ./main examples/0.yz
 ```
+
+## Examples
+### Hello world
+```
+println("Hello, world!");
+```
+Find more examples in the `examples/` directory.
 
 ## Syntax
 ### Variables
