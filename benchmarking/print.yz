@@ -1,0 +1,11 @@
+println(1 + 1);
+
+let y = 1;
+let sum = 0;
+
+while y < 1000 {
+	let sum = sum + y;
+	let y = y + 1;
+}
+
+println(sum);

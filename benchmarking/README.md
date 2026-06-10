@@ -1,0 +1,1 @@
+## This same code written in 4 languages show that YZ is ~28% faster than Python, ~35% faster than Ruby, ~36% faster than Node.JS, ~56% faster than PHP.
