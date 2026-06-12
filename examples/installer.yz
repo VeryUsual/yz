@@ -1,0 +1,37 @@
+let true public="true";func str(val) public {return val;}func int(val) public {return val;}func must_num(num) public {if 0<num{}return num;}func rand_num(min, max) public {let min = must_num(num min);let max = must_num(num max);_yz_invoke(_yz_cmd_rand_num, rand_num, min min, max max);return rand_num;}func List_Make() public {_yz_invoke(_yz_cmd_make_list, list);return list;}func List_Append(list, value) public {_yz_invoke(_yz_cmd_append_to_list, out, list list, value value);return out;}func List_ValueFromIndex(list, index) public {_yz_invoke(_yz_cmd_valuefromindex, out, list list, index index);return out;}func List_Length(list) public {_yz_invoke(_yz_cmd_listlength, out, list list);return out;}func Dict_Make() public {_yz_invoke(_yz_cmd_make_dictionary, dict);return dict;}func Dict_Set(dict, key, value) public {_yz_invoke(_yz_cmd_dict_set, new_dict, dict dict, key key, value value);return new_dict;}func Dict_Get(dict, key) public {_yz_invoke(_yz_cmd_dict_get, value, dict dict, key key);return value;}func Null() public {_yz_invoke(_yz_cmd_null, null);return null;}func Input() public {_yz_invoke(_yz_cmd_get_input, input);return input;}func StartsWith(s, prefix) public {_yz_invoke(_yz_cmd_startswith,out, s s, prefix prefix);return out;}func Label(text) public {return "widget=======label|;|text======={{text}}";}func InputBox(width) public {return"widget=======inputbox|;|width======={{width}}";}func TextBox() public {return "widget=======textbox";}func OpenFile() public {_yz_invoke(_yz_cmd_guitk_open_file,path);if path == "ERR_OPEN_FILE" {println("Error opening file.");}return path;}func ReadFile(path) public {_yz_invoke(_yz_cmd_guitk_read_file, content, path path);if content == "ERR_READ_FILE" {println("Error reading file.");}return content;}func SetContent(label, text)public {_yz_invoke(_yz_cmd_guitk_set_content, _, label label, text text);return 1;}func GetContent(widget) public {_yz_invoke(_yz_cmd_guitk_get_content, content, widget widget);return content;}func Insert(textbox, text) public{_yz_invoke(_yz_cmd_guitk_insert, _, textbox textbox, text text); return 1;}func Clear(textbox) public {_yz_invoke(_yz_cmd_guitk_clear, _,textbox textbox);return 1;}func Button(text, onClickFunc) public {return "widget=======button|;|text======={{text}}|;|onClickFunc======={{onClickFunc}}";}func Pack(widget) public {_yz_invoke(_yz_cmd_guitk_pack, out, widget widget);return out;}func App_Loop() public {_yz_invoke(_yz_cmd_guitk_loop, _);return 1;}func Activate_Theme(theme) public{_yz_invoke(_yz_cmd_guitk_activate_theme, _, theme theme);return theme;}func Set_Win_Title(title)public {_yz_invoke(_yz_cmd_guitk_set_title, _, title title);return title;}func Quit_GUI() public {_yz_invoke(_yz_cmd_guitk_quit_gui, _);return 200;}
+
+func run_cmd(cmd) {
+	_yz_invoke(_yz_cmd_runshellcmd, out, cmd cmd);
+	return out;
+}
+
+func installyz(btn_text) {
+	Activate_Theme(theme "azure light");
+	let i = 1; while i < 20 {
+		Pack(widget Label(text "Wait until this installer closes - then YZ will be installed!"));let i = i + 1;
+	}
+
+	run_cmd(cmd "mkdir -p ~/.yz");
+	run_cmd(cmd "mkdir -p ~/.yz-bin");
+	run_cmd(cmd "wget -O ~/.yz-bin/yz https://github.com/VeryUsual/yz/releases/download/0.1.0/yz");
+	run_cmd(cmd "chmod +x ~/.yz-bin/yz");
+	run_cmd(cmd "wget -O ~/.yz/stdlib.yz https://raw.githubusercontent.com/VeryUsual/yz/refs/heads/main/libs/stdlib.yz");
+	run_cmd(cmd "wget -O ~/.yz/fs.yz https://raw.githubusercontent.com/VeryUsual/yz/refs/heads/main/libs/fs.yz");
+	run_cmd(cmd "wget -O ~/.yz/guitk.yz https://raw.githubusercontent.com/VeryUsual/yz/refs/heads/main/libs/guitk.yz");
+	run_cmd(cmd "wget -O ~/.yz/requests.yz https://raw.githubusercontent.com/VeryUsual/yz/refs/heads/main/libs/requests.yz");
+	run_cmd(cmd "echo 'export PATH=$PATH:$HOME/.yz-bin' >> ~/.bashrc");
+	run_cmd(cmd "sleep 2");
+
+	Quit_GUI();
+}
+
+Activate_Theme(theme "azure dark");
+
+Set_Win_Title(title "YZ Installer");
+
+Pack(widget Label(text "YZ Official Installer - Written in YZ"));
+Pack(widget Label(text "Note: this only works on Linux users using the Bash terminal. AFTER INSTALLING, restart your terminal."));
+Pack(widget Label(text ""));Pack(widget Label(text ""));
+Pack(widget Button(text "Install YZ", onClickFunc "installyz"));
+
+App_Loop();

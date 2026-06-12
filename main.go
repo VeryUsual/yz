@@ -11,6 +11,7 @@ package main
 
 import (
 	"bufio"
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"os/exec"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -824,7 +826,7 @@ func run_statement(stmt any, variables map[string]YZVariable, functions map[stri
 		if err != nil {
 			log.Fatal(err)
 		}
-		lib_path := dir + "/Projects/yz/libs/" + s.library + ".yz"
+		lib_path := dir + ".yz/libs/" + s.library + ".yz"
 		var library_contents []byte
 
 		if _, err := os.Stat(lib_path); err == nil {
@@ -1106,6 +1108,13 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any, variables map[strin
 			return scanner.Text()
 		case "null":
 			return nil
+		case "runshellcmd":
+			cmd := exec.Command("bash", "-c", params["cmd"].(string))
+			out, err := cmd.Output()
+			if err != nil {
+				log.Fatalln("Error:", err)
+			}
+			return string(out)
 		default:
 			return "";
 	}
@@ -1278,6 +1287,11 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 
 // Main
 
+// embed stuff --------------------------------
+//go:embed examples/installer.yz
+var script string
+// end embed stuff ----------------------------
+
 func run_program(source string, verbose *bool) {
 	tokens := lexer(source, verbose)
 	variables := make(map[string]YZVariable)
@@ -1292,7 +1306,13 @@ func main() {
 	flag.Parse()
 
 	if flag.NArg() < 1 {
-		log.Fatalf("Usage: [OPTIONS] FILE")
+		if false == true {
+			verbose := false
+			run_program(script, &verbose)
+			os.Exit(0)
+		} else {
+			log.Fatalf("Usage: [OPTIONS] FILE")
+		}
 	}
 
 	file := flag.Arg(0)
