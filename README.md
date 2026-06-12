@@ -23,6 +23,8 @@ go build main.go
 ./main examples/0.yz
 ```
 
+### IMPORTANT! Read [the documentation](DOCS.md)!
+
 ## Examples
 ### Hello world
 ```
@@ -83,6 +85,8 @@ gothru arr as element {
     println(element);
 }
 ```
+
+For a more detailed explaination, check [the documentation](DOCS.md).
 
 ## License
 This project is licensed under the GNU General Public License 3.0.
