@@ -65,6 +65,8 @@ To specify parameters in function calls, you must put the parameter name, space,
 
 Also, you may be wondering, why does the `println` function not have a parameter name that is needed? This is because `println` is not a function, it is instead a built-in callable. Built-in callables look exactly like functions, but are directly built into the interpreter and therefore don't need parameters to be specified. Don't be worried though, because most functions come from the standard library, except `println` and `_yz_invoke`.
 
+To return a value from a function, do `return value;`. `return;` is invalid code and will result in a syntax error. You must return always something. Returning nothing impedes expressiveness.
+
 ### Standard library
 
 ```
@@ -154,7 +156,7 @@ if 2 == 2 {} else {
 }
 ```
 
-Looking at the third statement, you notice the lack of a `not` operator. This is intentional. `Not` operators are unneeded, because you should be accounting for all possibilities, therefore having something in the `if` statement and the `else` one too. If you truly don't, then you can simply use the `if condition {} else {}` statement.
+Looking at the third statement, you notice the lack of a `not` operator. This is intentional. `Not` operators are unneeded, because you should be accounting for all possibilities, therefore having something in the `if` statement and the `else` one too. If you truly don't, then you can simply use the `if condition {} else {code}` statement.
 
 ### Match statements
 
@@ -187,6 +189,40 @@ gothru arr as element {
     println(element);
 }
 ```
+
+### Break statements
+
+```
+let x = 1;
+while x < 4 {
+    println(str(val x));
+    let x = x + 1;
+    if x == 2 {
+        break;
+    }
+}
+```
+
+Breaks terminate the current loop.
+
+### Imports
+
+```
+import stdlib;
+import fs;
+import guitk;
+import requests;
+```
+
+Imports import libraries from the libs/ directory. After importing, you can use their public functions and variables.
+
+### Math
+
+```
+println(4 + 3 * 2);
+```
+
+Math is possible anywhere numbers are allowed.
 
 ## Ending
 
