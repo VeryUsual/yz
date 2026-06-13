@@ -17,10 +17,24 @@ YZ is a fast, easy-to-learn, robust programming language. Its compiler is writte
 - Cross-platform compatable
 
 ## Installation
+### Linux
+#### Installer method
+For this to work, you need to be using Linux and have Bash installed.
+Download [the YZ installer (written in YZ!)](yz_installer) and run it. Then, open a Bash terminal and run `yz`. If it tells you the usage of the command, it's installed!
+#### Manual method
+To use this method, you will need Go installed. Learn how to install it [here](https://go.dev/doc/install) or just install the golang package from your system's package manager.
 ```bash
 git clone https://github.com/VeryUsual/yz
 go build main.go
 ./main examples/0.yz
+```
+You can then add the main executable to your Bash aliases as `yz` for easier access!
+
+### Windows
+```bash
+git clone https://github.com/VeryUsual/yz
+go build main.go
+./main.exe examples/0.yz
 ```
 
 ### IMPORTANT! Read [the documentation](DOCS.md)!

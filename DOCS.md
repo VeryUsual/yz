@@ -10,14 +10,7 @@ YZ is simple yet extremely powerful.
 
 ### Installation
 
-The best way to get YZ is by installing it from source. Don't worry, this is extremely easy and only takes a few seconds. Although, you will need Go installed. Learn how to install it [here](https://go.dev/doc/install) or just install the golang package from your system's package manager.
-
-```bash
-git clone https://github.com/VeryUsual/yz
-go build main.go
-```
-
-Once this is done, you will have a executable package called main. Add this to your Bash aliases as "yz".
+Learn how to install YZ [here](README.md).
 
 ### Getting started
 
