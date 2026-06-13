@@ -18,10 +18,12 @@ YZ is a fast, easy-to-learn, robust programming language. Its compiler is writte
 
 ## Installation
 ### Linux
-#### Installer method (recommended for most users)
+#### Installer (recommended for most users)
 For this to work, you need to be using Linux and have Bash installed.
 Download [the YZ installer (written in YZ!)](https://github.com/VeryUsual/yz/raw/refs/heads/main/yz_installer) and run it. Then, open a Bash terminal and run `yz`. If it tells you the usage of the command, it's installed!
-#### Manual method
+#### Download binary (recommended for most users)
+Go to the [releases page](https://github.com/VeryUsual/yz/releases) and download the `yz-linux-amd64` file. Next, simply open a terminal and run `./yz-linux-amd64`. If it says you cannot execute it, you may need to do, `chmod +x yz-linux-amd64`.
+#### Build from source
 To use this method, you will need Go installed. Learn how to install it [here](https://go.dev/doc/install) or just install the golang package from your system's package manager.
 ```bash
 git clone https://github.com/VeryUsual/yz
@@ -32,7 +34,7 @@ You can then add the main executable to your Bash aliases as `yz` for easier acc
 
 ### Windows
 #### Download binary (recommended for most users)
-Go to the [releases page](https://github.com/VeryUsual/yz/releases) and download the `yz.exe` file. Next, simply open a terminal and run `./yz.exe`.
+Go to the [releases page](https://github.com/VeryUsual/yz/releases) and download the `yz-windows-amd64.exe` file. Next, simply open a terminal and run `./yz-windows-amd64.exe`.
 #### Build from source
 You will need Go installed. Learn how to install it [here](https://go.dev/doc/install).
 ```bash
