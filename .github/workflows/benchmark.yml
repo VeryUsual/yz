@@ -11,14 +11,16 @@ jobs:
           go-version: '1.25'
       - name: Build
         run: go build main.go
-      - name: Install PHP
+      - name: Install other languages
         run: |
           sudo apt update
           sudo apt install software-properties-common
           sudo add-apt-repository ppa:ondrej/php
           sudo apt update
           sudo apt install php8.1-cli
+          sudo apt install ruby-full
       - name: Benchmark and compare
         run: |
-          /usr/bin/time -f '%e' ./main benchmarking/print.yz > /dev/null
-          /usr/bin/time -f '%e' php8.1 benchmarking/print.php > /dev/null
+          /usr/bin/time -f 'YZ took %e seconds.' ./main benchmarking/test.yz > /dev/null
+          /usr/bin/time -f 'PHP took %e seconds.' php8.1 benchmarking/test.php > /dev/null
+          /usr/bin/time -f 'Ruby took %e seconds.' ruby benchmarking/test.rb > /dev/null
