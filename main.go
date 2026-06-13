@@ -151,21 +151,21 @@ type Token struct {
 }
 
 var keywords = map[string]string{
-	"let": "LET",
-	"println": "PRINTLN",
-	"if": "IF",
-	"func": "FUNC",
-	"return": "RETURN",
-	"else": "ELSE",
-	"import": "IMPORT",
-	"public": "PUBLIC",
-	"private": "PRIVATE",
+	"let":        "LET",
+	"println":    "PRINTLN",
+	"if":         "IF",
+	"func":       "FUNC",
+	"return":     "RETURN",
+	"else":       "ELSE",
+	"import":     "IMPORT",
+	"public":     "PUBLIC",
+	"private":    "PRIVATE",
 	"_yz_invoke": "YZ_INVOKE",
-	"while": "WHILE",
-	"break": "BREAK",
-	"gothru": "GOTHRU",
-	"as": "AS",
-	"or": "OR",
+	"while":      "WHILE",
+	"break":      "BREAK",
+	"gothru":     "GOTHRU",
+	"as":         "AS",
+	"or":         "OR",
 }
 
 func atoi(s string) (int, error) {
@@ -175,7 +175,7 @@ func atoi(s string) (int, error) {
 		if c < '0' || c > '9' {
 			break
 		}
-		n = n*10 + int(c - '0')
+		n = n*10 + int(c-'0')
 	}
 	return n, nil
 }
