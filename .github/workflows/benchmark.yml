@@ -32,4 +32,4 @@ jobs:
             min=$(awk "BEGIN{print ($t < $min) ? $t : $min}")
           done
           echo $min
-          awk "BEGIN{exit !($min > 4.00)}"
+          awk "BEGIN{exit !($min < 4.00)}"
