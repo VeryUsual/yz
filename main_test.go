@@ -1,15 +1,15 @@
 package main
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/zenizh/go-capturer"
 	"strings"
+	"testing"
 )
 
 func TestMain(t *testing.T) {
 	var verbose = false
-	out := capturer.CaptureStdout(func () {
+	out := capturer.CaptureStdout(func() {
 		run_program(`
 
 		let x = 4;

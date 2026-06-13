@@ -36,30 +36,30 @@ import (
 // AST Nodes
 
 type Num struct {
-	Value      int
+	Value int
 }
 
 type Str struct {
-	Value      string
+	Value string
 }
 
 type Var struct {
-	Name       string
+	Name string
 }
 
 type Add struct {
-	Left       any
-	Right      any
+	Left  any
+	Right any
 }
 
 type Sub struct {
-	Left       any
-	Right      any
+	Left  any
+	Right any
 }
 
 type Mul struct {
-	Left       any
-	Right      any
+	Left  any
+	Right any
 }
 
 type Let struct {
@@ -69,24 +69,24 @@ type Let struct {
 }
 
 type Print struct {
-	Expr       any
+	Expr any
 }
 
 type IfStmt struct {
-	Condition  any
-	Then       []any
-	Else       []any
+	Condition any
+	Then      []any
+	Else      []any
 }
 
 type WhileLoop struct {
-	Condition  any
-	Contents   []any
+	Condition any
+	Contents  []any
 }
 
 type GoThruLoop struct {
-	ArrayVar   string
-	Contents   []any
-	IterVar    string
+	ArrayVar string
+	Contents []any
+	IterVar  string
 }
 
 type Function struct {
@@ -101,7 +101,7 @@ type YZVariable struct {
 	Visibility string
 }
 
-type FuncCallStatement struct { 
+type FuncCallStatement struct {
 	Name       string
 	Parameters map[string]any
 }
@@ -118,26 +118,26 @@ type Program struct {
 }
 
 type Return struct {
-	Value      any
+	Value any
 }
 
 type Comparison struct {
-	Left       any
-	Operator   string
-	Right      any
+	Left     any
+	Operator string
+	Right    any
 }
 
 type ImportStmt struct {
-	library    string
+	library string
 }
 
 type YZInvokeStmt struct {
-	func_to_invoke   string
-	return_var       string
-	Parameters       map[string]any
+	func_to_invoke string
+	return_var     string
+	Parameters     map[string]any
 }
 
-type BreakStmt struct {}
+type BreakStmt struct{}
 
 // Custom error types
 
@@ -161,7 +161,7 @@ func lexer(src string, verbose *bool) []Token {
 			i += 1
 		} else if unicode.IsDigit(rune(c)) || (c == '-' && unicode.IsDigit(rune(src[i+1]))) {
 			var j = i
-			
+
 			if c == '-' && unicode.IsDigit(rune(src[i+1])) {
 				j += 1
 			}
@@ -222,11 +222,11 @@ func lexer(src string, verbose *bool) []Token {
 			tokens = append(tokens, Token{"MUL", string(c)})
 			i += 1
 		} else if c == '=' && src[i+1] == '=' {
-			tokens = append(tokens, Token{"DOUBLE_EQUAL", string(src[i:i+1])})
+			tokens = append(tokens, Token{"DOUBLE_EQUAL", string(src[i : i+1])})
 			i += 2
 		} else if c == '>' {
 			if src[i+1] == '=' {
-				tokens = append(tokens, Token{"GREATER_EQUAL", string(src[i:i+1])})
+				tokens = append(tokens, Token{"GREATER_EQUAL", string(src[i : i+1])})
 				i += 2
 			} else {
 				tokens = append(tokens, Token{"GREATER", string(c)})
@@ -234,7 +234,7 @@ func lexer(src string, verbose *bool) []Token {
 			}
 		} else if c == '<' {
 			if src[i+1] == '=' {
-				tokens = append(tokens, Token{"LESS_THAN_EQUAL", string(src[i:i+1])})
+				tokens = append(tokens, Token{"LESS_THAN_EQUAL", string(src[i : i+1])})
 				i += 2
 			} else {
 				tokens = append(tokens, Token{"LESS_THAN", string(c)})
@@ -295,10 +295,10 @@ func lexer(src string, verbose *bool) []Token {
 // Parser
 
 type Parser struct {
-	tokens     []Token
-	pos        int
-	variables  map[string]YZVariable
-	functions  map[string]Function
+	tokens    []Token
+	pos       int
+	variables map[string]YZVariable
+	functions map[string]Function
 }
 
 func new_parser(tokens []Token, variables map[string]YZVariable, functions map[string]Function) *Parser {
@@ -671,37 +671,37 @@ func (p *Parser) mul_expr() any {
 func func_call_and_return(call FuncCallExpr, variables map[string]YZVariable, functions map[string]Function) any {
 	if fn, exists := functions[call.Name]; exists {
 		func_vars := make(map[string]YZVariable)
-        for key, value := range variables {
-            func_vars[key] = value
-        }
-        for param, param_value := range call.Parameters {
-            if _, ok := fn.Parameters[param]; ok {
-                func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
-            } else {
-                if fn.Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
-                    func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
-                } else {
-                    log.Fatalf("Call to function %s failed due to non-existent parameter %s without _yz_arbitrary_params_allowed_ flag.", call.Name, param)
-                }
-            }
-        }
-        for name := range fn.Parameters {
-            if name != "_yz_arbitrary_params_allowed_" {
-                if _, ok := call.Parameters[name]; !ok {
-                    log.Fatalf("Missing required parameter %s on function %s", name, fn.Name)
-                }
-            }
-        }
-        for _, stmt := range fn.Contents {
-            if ret, ok := stmt.(Return); ok {
-                return eval_expr(ret.Value, func_vars, functions)
-            }
-            run_statement(stmt, func_vars, functions)
-        }
-        return ""
+		for key, value := range variables {
+			func_vars[key] = value
+		}
+		for param, param_value := range call.Parameters {
+			if _, ok := fn.Parameters[param]; ok {
+				func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
+			} else {
+				if fn.Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
+					func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
+				} else {
+					log.Fatalf("Call to function %s failed due to non-existent parameter %s without _yz_arbitrary_params_allowed_ flag.", call.Name, param)
+				}
+			}
+		}
+		for name := range fn.Parameters {
+			if name != "_yz_arbitrary_params_allowed_" {
+				if _, ok := call.Parameters[name]; !ok {
+					log.Fatalf("Missing required parameter %s on function %s", name, fn.Name)
+				}
+			}
+		}
+		for _, stmt := range fn.Contents {
+			if ret, ok := stmt.(Return); ok {
+				return eval_expr(ret.Value, func_vars, functions)
+			}
+			run_statement(stmt, func_vars, functions)
+		}
+		return ""
 	} else {
 		log.Fatalf("Call to non-existent function %s.", call.Name)
-        return ""
+		return ""
 	}
 }
 
@@ -709,37 +709,37 @@ func (p *Parser) primary() any {
 	tok := p.cur()
 
 	switch tok.Type {
-		case "NUMBER":
-			p.eat("NUMBER")
-			val, _ := strconv.Atoi(tok.Value)
-			return Num{val}
-		case "IDENT":
-			p.eat("IDENT")
-			return Var{tok.Value}
-		case "LPAREN":
-			p.eat("LPAREN")
-			node := p.expr()
-			p.eat("RPAREN")
-			return node
-		case "QUOTE":
-			value := ""
-			p.eat("QUOTE")
-			if p.cur().Type == "STR" {
-				value = p.cur().Value
-			}
-			p.eat("STR")
-			p.eat("QUOTE")
-			return Str{value}
-		default:
-			log.Fatalf("Unexpected token in primary (%s, %s)", tok.Type, tok.Value)
-			return 0
+	case "NUMBER":
+		p.eat("NUMBER")
+		val, _ := strconv.Atoi(tok.Value)
+		return Num{val}
+	case "IDENT":
+		p.eat("IDENT")
+		return Var{tok.Value}
+	case "LPAREN":
+		p.eat("LPAREN")
+		node := p.expr()
+		p.eat("RPAREN")
+		return node
+	case "QUOTE":
+		value := ""
+		p.eat("QUOTE")
+		if p.cur().Type == "STR" {
+			value = p.cur().Value
+		}
+		p.eat("STR")
+		p.eat("QUOTE")
+		return Str{value}
+	default:
+		log.Fatalf("Unexpected token in primary (%s, %s)", tok.Type, tok.Value)
+		return 0
 	}
 }
 
 func run(program *Program) {
 	for _, stmt := range program.statements {
 		if _, err := run_statement(stmt, program.variables, program.functions); err == ErrorBreak {
-			break;
+			break
 		}
 	}
 }
@@ -748,7 +748,7 @@ func run_statement(stmt any, variables map[string]YZVariable, functions map[stri
 	switch s := stmt.(type) {
 	case Let:
 		value := eval_expr(s.Value, variables, functions)
-		variables[s.Name] = YZVariable{ value, s.Visibility }
+		variables[s.Name] = YZVariable{value, s.Visibility}
 		return "", nil
 	case Print:
 		value := eval_expr(s.Expr, variables, functions)
@@ -792,10 +792,10 @@ func run_statement(stmt any, variables map[string]YZVariable, functions map[stri
 
 			for param, param_value := range s.Parameters {
 				if _, ok := fn.Parameters[param]; ok {
-					func_vars[param] = YZVariable{ eval_expr(param_value, variables, functions), "private" }
+					func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
 				} else {
 					if functions[s.Name].Parameters["_yz_arbitrary_params_allowed_"] == "YES" {
-						func_vars[param] =  YZVariable{ eval_expr(param_value, variables, functions), "private" }
+						func_vars[param] = YZVariable{eval_expr(param_value, variables, functions), "private"}
 					} else {
 						log.Fatalf("Call to function %s failed due to non-existent parameter %s without _yz_arbitrary_params_allowed_ flag.", param, s.Name)
 					}
@@ -852,7 +852,7 @@ func run_statement(stmt any, variables map[string]YZVariable, functions map[stri
 		}
 		for k, v := range program.variables {
 			if v.Visibility == "public" {
-				variables[k] = YZVariable{ v.Value, "public" }
+				variables[k] = YZVariable{v.Value, "public"}
 			}
 		}
 		return "", nil
@@ -861,35 +861,35 @@ func run_statement(stmt any, variables map[string]YZVariable, functions map[stri
 		for k, v := range s.Parameters {
 			parameters[k] = eval_expr(v, variables, functions)
 		}
-		variables[s.return_var] = YZVariable{ handle_yz_invoke(s, parameters, variables, functions), "private" }
+		variables[s.return_var] = YZVariable{handle_yz_invoke(s, parameters, variables, functions), "private"}
 		return "", nil
 	case BreakStmt:
 		return "", ErrorBreak
 	case GoThruLoop:
 		array := variables[s.ArrayVar]
 		switch a := array.Value.(type) {
-			case []string:
-				for _, i := range a {
-					variables[s.IterVar] = YZVariable{ i, "private" }
-					for _, thenStmt := range s.Contents {
-						if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
-							return "", nil
-						}
+		case []string:
+			for _, i := range a {
+				variables[s.IterVar] = YZVariable{i, "private"}
+				for _, thenStmt := range s.Contents {
+					if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
+						return "", nil
 					}
-					variables[s.IterVar] = YZVariable{ "", "private" }
 				}
-			case []any:
-				for _, i := range a {
-					variables[s.IterVar] = YZVariable{ i, "private" }
-					for _, thenStmt := range s.Contents {
-						if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
-							return "", nil
-						}
+				variables[s.IterVar] = YZVariable{"", "private"}
+			}
+		case []any:
+			for _, i := range a {
+				variables[s.IterVar] = YZVariable{i, "private"}
+				for _, thenStmt := range s.Contents {
+					if _, err := run_statement(thenStmt, variables, functions); err == ErrorBreak {
+						return "", nil
 					}
-					variables[s.IterVar] = YZVariable{ "", "private" }
 				}
-			default:
-				log.Fatalf("Unexpected array type in gothru statement: %s", reflect.TypeOf(array))
+				variables[s.IterVar] = YZVariable{"", "private"}
+			}
+		default:
+			log.Fatalf("Unexpected array type in gothru statement: %s", reflect.TypeOf(array))
 		}
 
 		return "", nil
@@ -907,225 +907,225 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any, variables map[strin
 	}
 
 	switch function {
-		case "rand_num":
-			min, _ := strconv.Atoi(params["min"].(string))
-			max, _ := strconv.Atoi(params["max"].(string))
-			return strconv.Itoa(min + rand.IntN(max-min+1))
-		case "guitk_activate_theme":
-			ActivateTheme(params["theme"].(string))
-			return ""
-		case "guitk_pack":
-			paramss := make(map[string]string)
+	case "rand_num":
+		min, _ := strconv.Atoi(params["min"].(string))
+		max, _ := strconv.Atoi(params["max"].(string))
+		return strconv.Itoa(min + rand.IntN(max-min+1))
+	case "guitk_activate_theme":
+		ActivateTheme(params["theme"].(string))
+		return ""
+	case "guitk_pack":
+		paramss := make(map[string]string)
 
-			for _, v := range strings.Split(params["widget"].(string), "|;|") {
-				parts := strings.Split(v, "=======")
-				if len(parts) == 2 {
-					paramss[parts[0]] = parts[1]
+		for _, v := range strings.Split(params["widget"].(string), "|;|") {
+			parts := strings.Split(v, "=======")
+			if len(parts) == 2 {
+				paramss[parts[0]] = parts[1]
+			}
+		}
+
+		var widget any = nil
+
+		switch paramss["widget"] {
+		case "label":
+			widget = Label(Txt(paramss["text"]))
+			Pack(widget.(*LabelWidget))
+		case "inputbox":
+			width, _ := strconv.Atoi(paramss["width"])
+			Pack(TEntry(Textvariable(""), Background(White), Width(width)))
+		case "textbox":
+			widget = Text(Height(14), Width(60))
+			Pack(widget.(*TextWidget))
+		case "button":
+			Pack(TButton(Txt(paramss["text"]), Command(func() {
+				params := make(map[string]any)
+				var bracket_rgx = regexp.MustCompile(`\((.*?)\)`)
+				if len(bracket_rgx.FindStringSubmatch(paramss["text"])) < 1 {
+					params["btn_text"] = Str{paramss["text"]}
+				} else {
+					params["btn_text"] = Str{bracket_rgx.FindStringSubmatch(paramss["text"])[1]}
+				}
+				run_statement(FuncCallStatement{paramss["onClickFunc"], params}, variables, functions)
+			})))
+		}
+
+		return widget
+	case "guitk_open_file":
+		path := GetOpenFile()[0]
+		return path
+	case "guitk_read_file":
+		file, err := os.Open(params["path"].(string))
+		if err != nil {
+			log.Fatalf("Error opening file: %s", err)
+			return "ERR_OPEN_FILE"
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
+		if err != nil {
+			log.Fatalf("Error reading file: %s", err)
+			return "ERR_READ_FILE"
+		}
+
+		return string(data)
+	case "guitk_insert":
+		params["textbox"].(*TextWidget).Insert("end", params["text"].(string))
+		return 1
+	case "guitk_clear":
+		params["textbox"].(*TextWidget).Delete("1.0", "end")
+		return 1
+	case "guitk_set_content":
+		params["label"].(*LabelWidget).Configure(Txt(params["text"].(string)))
+		return 1
+	case "guitk_get_content":
+		switch w := params["widget"].(type) {
+		case *TextWidget:
+			return w.Get("1.0", "end-1c")
+		case *LabelWidget:
+			return w.Txt()
+		default:
+			return ""
+		}
+	case "fs_write_file":
+		f, err := os.Create(params["path"].(string))
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		f.WriteString(params["content"].([]string)[0])
+		return 1
+	case "guitk_loop":
+		App.Wait()
+		return ""
+	case "guitk_set_title":
+		App.WmTitle(params["title"].(string))
+		return ""
+	case "guitk_quit_gui":
+		Destroy(App)
+		return 200
+	case "startswith":
+		return strconv.FormatBool(strings.HasPrefix(params["s"].(string), params["prefix"].(string)))
+	case "http_request":
+		req, err := http.NewRequest("GET", params["url"].(string), nil)
+		if err != nil {
+			panic(err)
+		}
+
+		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		return string(body)
+	case "parse_html":
+		htmlcontent := params["html"].(string)
+		doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlcontent))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		result := []string{}
+
+		doc.Find("*").Each(func(i int, s *goquery.Selection) {
+			result = append(result, goquery.NodeName(s))
+			result = append(result, strings.TrimSpace(s.Text()))
+			for _, n := range s.Nodes {
+				for _, a := range n.Attr {
+					result = append(result, a.Key)
+					result = append(result, a.Val)
 				}
 			}
+			result = append(result, ".")
+		})
 
-			var widget any = nil
+		return result
+	case "make_list":
+		return []any{}
+	case "make_dictionary":
+		return make(map[string]any)
+	case "dict_set":
+		switch dict := params["dict"].(type) {
+		case map[string]any:
+			dict[params["key"].(string)] = params["value"]
+			return dict
+		default:
+			log.Fatalf("Failed: Trying to set dictionary value on dictionary of type %T", params["dict"])
+		}
+		return ""
+	case "dict_get":
+		switch dict := params["dict"].(type) {
+		case map[string]any:
+			return dict[params["key"].(string)]
+		default:
+			log.Fatalf("Failed: Trying to get value from dictionary of type %T", params["dict"])
+		}
+		return ""
+	case "append_to_list":
+		switch lst := params["list"].(type) {
+		case []any:
+			return append(lst, params["value"].(string))
+		default:
+			log.Fatalf("Failed: Trying to append value to array of type %T.", params["list"])
+		}
+		return ""
+	case "valuefromindex":
+		index, err := strconv.Atoi(params["index"].(string))
+		if err != nil {
+			panic(err)
+		}
 
-			switch paramss["widget"] {
-				case "label":
-					widget = Label(Txt(paramss["text"]))
-					Pack(widget.(*LabelWidget))
-				case "inputbox":
-					width, _ := strconv.Atoi(paramss["width"])
-					Pack(TEntry(Textvariable(""), Background(White), Width(width)))
-				case "textbox":
-					widget = Text(Height(14), Width(60))
-					Pack(widget.(*TextWidget))
-				case "button":
-					Pack(TButton(Txt(paramss["text"]), Command(func() {
-						params := make(map[string]any)
-						var bracket_rgx = regexp.MustCompile(`\((.*?)\)`)
-						if len(bracket_rgx.FindStringSubmatch(paramss["text"])) < 1 {
-							params["btn_text"] = Str{paramss["text"]}
-						} else {
-							params["btn_text"] = Str{bracket_rgx.FindStringSubmatch(paramss["text"])[1]}
-						}
-						run_statement(FuncCallStatement{paramss["onClickFunc"], params}, variables, functions)
-					})))
-			}
-
-			return widget;
-		case "guitk_open_file":
-			path := GetOpenFile()[0]
-			return path
-		case "guitk_read_file":
-			file, err := os.Open(params["path"].(string))
-			if err != nil {
-				log.Fatalf("Error opening file: %s", err)
-				return "ERR_OPEN_FILE"
-			}
-			defer file.Close()
-
-			data, err := io.ReadAll(file)
-			if err != nil {
-				log.Fatalf("Error reading file: %s", err)
-				return "ERR_READ_FILE"
-			}
-
-			return string(data)
-		case "guitk_insert":
-			params["textbox"].(*TextWidget).Insert("end", params["text"].(string));
-			return 1;
-		case "guitk_clear":
-			params["textbox"].(*TextWidget).Delete("1.0", "end")
-			return 1;
-		case "guitk_set_content":
-			params["label"].(*LabelWidget).Configure(Txt(params["text"].(string)))
-			return 1;
-		case "guitk_get_content":
-			switch w := params["widget"].(type) {
-			case *TextWidget:
-				return w.Get("1.0", "end-1c")
-			case *LabelWidget:
-				return w.Txt()
-			default:
+		switch lst := params["list"].(type) {
+		case []any:
+			if index < len(lst) {
+				return lst[index]
+			} else {
 				return ""
 			}
-		case "fs_write_file":
-			f, err := os.Create(params["path"].(string))
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer f.Close()
-			f.WriteString(params["content"].([]string)[0])
-			return 1
-		case "guitk_loop":
-			App.Wait()
-			return "";
-		case "guitk_set_title":
-			App.WmTitle(params["title"].(string))
-			return "";
-		case "guitk_quit_gui":
-			Destroy(App)
-			return 200
-		case "startswith":
-			return strconv.FormatBool(strings.HasPrefix(params["s"].(string), params["prefix"].(string)))
-		case "http_request":
-			req, err := http.NewRequest("GET", params["url"].(string), nil)
-			if err != nil {
-				panic(err)
-			}
-
-			req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0")
-
-			client := &http.Client{}
-			resp, err := client.Do(req)
-			if err != nil {
-				panic(err)
-			}
-			defer resp.Body.Close()
-
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				panic(err)
-			}
-
-			return string(body);
-		case "parse_html":
-			htmlcontent := params["html"].(string)
-			doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlcontent))
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			result := []string{}
-
-			doc.Find("*").Each(func(i int, s *goquery.Selection) {
-				result = append(result, goquery.NodeName(s))
-				result = append(result, strings.TrimSpace(s.Text()))
-				for _, n := range s.Nodes {
-					for _, a := range n.Attr {
-						result = append(result, a.Key)
-						result = append(result, a.Val)
-					}
-				}
-				result = append(result, ".")
-			})
-
-			return result
-		case "make_list":
-			return []any{}
-		case "make_dictionary":
-			return make(map[string]any)
-		case "dict_set":
-			switch dict := params["dict"].(type) {
-			case map[string]any:
-				dict[params["key"].(string)] = params["value"]
-				return dict
-			default:
-				log.Fatalf("Failed: Trying to set dictionary value on dictionary of type %T", params["dict"])
-			}
-			return ""
-		case "dict_get":
-			switch dict := params["dict"].(type) {
-			case map[string]any:
-				return dict[params["key"].(string)]
-			default:
-				log.Fatalf("Failed: Trying to get value from dictionary of type %T", params["dict"])
-			}
-			return ""
-		case "append_to_list":
-			switch lst := params["list"].(type) {
-			case []any:
-				return append(lst, params["value"].(string))
-			default:
-				log.Fatalf("Failed: Trying to append value to array of type %T.", params["list"])
-			}
-			return ""
-		case "valuefromindex":
-			index, err := strconv.Atoi(params["index"].(string))
-			if err != nil {
-				panic(err)
-			}
-
-			switch lst := params["list"].(type) {
-			case []any:
-				if index < len(lst) {
-					return lst[index]
-				} else {
-					return ""
-				}
-			default:
-				log.Fatalf("Failed: Trying to get value from array of type %T.", params["list"])
-			}
-			return ""
-		case "listlength":
-			switch lst := params["list"].(type) {
-			case []any:
-				return strconv.Itoa( len(lst) )
-			default:
-				log.Fatalf("Failed: Trying to get length of array of type %T.", params["list"])
-			}
-			return 0
-		case "get_input":
-			scanner := bufio.NewScanner(os.Stdin)
-			scanner.Scan()
-			return scanner.Text()
-		case "null":
-			return nil
-		case "runshellcmd":
-			cmd := exec.Command("bash", "-c", params["cmd"].(string))
-			out, err := cmd.Output()
-			if err != nil {
-				log.Fatalln("Error:", err)
-			}
-			return string(out)
 		default:
-			return "";
+			log.Fatalf("Failed: Trying to get value from array of type %T.", params["list"])
+		}
+		return ""
+	case "listlength":
+		switch lst := params["list"].(type) {
+		case []any:
+			return strconv.Itoa(len(lst))
+		default:
+			log.Fatalf("Failed: Trying to get length of array of type %T.", params["list"])
+		}
+		return 0
+	case "get_input":
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		return scanner.Text()
+	case "null":
+		return nil
+	case "runshellcmd":
+		cmd := exec.Command("bash", "-c", params["cmd"].(string))
+		out, err := cmd.Output()
+		if err != nil {
+			log.Fatalln("Error:", err)
+		}
+		return string(out)
+	default:
+		return ""
 	}
 }
 
 func eval_random_expr(s string, variables map[string]YZVariable, functions map[string]Function) any {
 	verbose := false
 	tokens := lexer(s, &verbose)
-    parser := new_parser(tokens, variables, functions)
-    expr := parser.expr()
-    return eval_expr(expr, variables, functions)
+	parser := new_parser(tokens, variables, functions)
+	expr := parser.expr()
+	return eval_expr(expr, variables, functions)
 }
 
 func eval_expr(expr any, variables map[string]YZVariable, functions map[string]Function) any {
@@ -1288,8 +1288,10 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 // Main
 
 // embed stuff --------------------------------
+//
 //go:embed examples/installer.yz
 var script string
+
 // end embed stuff ----------------------------
 
 func run_program(source string, verbose *bool) {
