@@ -24,3 +24,11 @@ jobs:
           /usr/bin/time -f 'YZ took %e seconds.' ./main benchmarking/test.yz > /dev/null
           /usr/bin/time -f 'PHP took %e seconds.' php8.1 benchmarking/test.php > /dev/null
           /usr/bin/time -f 'Ruby took %e seconds.' ruby benchmarking/test.rb > /dev/null
+      - name: Make sure runtime is below 5 seconds
+        run: |
+          min=999
+          for i in 1 2 3; do
+            t=$(/usr/bin/time -f '%e' ./main benchmarking/test.yz 2>&1 >/dev/null)
+            min=$(awk "BEGIN{print ($t < $min) ? $t : $min}")
+          done
+          awk "BEGIN{exit !($min > 4.00)}"
