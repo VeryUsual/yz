@@ -18,7 +18,7 @@ YZ is a fast, easy-to-learn, robust programming language. Its compiler is writte
 
 ## Installation
 ### Linux
-#### Installer (recommended for most users)
+#### GUI Installer (recommended for most users)
 For this to work, you need to be using Linux and have Bash installed.
 Download [the YZ installer (written in YZ!)](https://github.com/VeryUsual/yz/raw/refs/heads/main/yz_installer) and run it. Then, open a Bash terminal and run `yz`. If it tells you the usage of the command, it's installed!
 #### Download binary (recommended for most users)
