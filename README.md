@@ -31,13 +31,14 @@ go build main.go
 You can then add the main executable to your Bash aliases as `yz` for easier access!
 
 ### Windows
+You will need Go installed. Learn how to install it [here](https://go.dev/doc/install).
 ```bash
 git clone https://github.com/VeryUsual/yz
 go build main.go
 ./main.exe examples/0.yz
 ```
 
-### IMPORTANT! Read [the documentation](DOCS.md)!
+## After installation, please read [the documentation](DOCS.md).
 
 ## Examples
 ### Hello world
