@@ -13,7 +13,7 @@ func installyz(btn_text) {
 
 	run_cmd(cmd "mkdir -p ~/.yz");
 	run_cmd(cmd "mkdir -p ~/.yz-bin");
-	run_cmd(cmd "wget -O ~/.yz-bin/yz https://github.com/VeryUsual/yz/releases/download/0.1.0/yz");
+	run_cmd(cmd "wget -O ~/.yz-bin/yz https://github.com/VeryUsual/yz/releases/latest/download/yz-linux-amd64");
 	run_cmd(cmd "chmod +x ~/.yz-bin/yz");
 	run_cmd(cmd "wget -O ~/.yz/stdlib.yz https://raw.githubusercontent.com/VeryUsual/yz/refs/heads/main/libs/stdlib.yz");
 	run_cmd(cmd "wget -O ~/.yz/fs.yz https://raw.githubusercontent.com/VeryUsual/yz/refs/heads/main/libs/fs.yz");
