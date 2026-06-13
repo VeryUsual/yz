@@ -3,7 +3,7 @@
 YZ is a fast, easy-to-learn, robust programming language. Its compiler is written in Go.
 
 ## Features
-- Fast execution (it is ~28% faster than Python, ~35% faster than Ruby, ~36% faster than Node.JS, ~56% faster than PHP)
+- Fast execution (it is faster and uses less memory than Python, Ruby, Node.JS, and PHP)
 - Intuitive syntax
 - Variables
 - Functions

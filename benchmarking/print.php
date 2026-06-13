@@ -5,7 +5,7 @@ echo 1 + 1 . "\n";
 $y = 1;
 $thesum = 0;
 
-while ($y < 1000) {
+while ($y < 10000000) {
     $thesum += $y;
     $y += 1;
 }

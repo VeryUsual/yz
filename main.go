@@ -150,9 +150,39 @@ type Token struct {
 	Value string
 }
 
+var keywords = map[string]string{
+	"let": "LET",
+	"println": "PRINTLN",
+	"if": "IF",
+	"func": "FUNC",
+	"return": "RETURN",
+	"else": "ELSE",
+	"import": "IMPORT",
+	"public": "PUBLIC",
+	"private": "PRIVATE",
+	"_yz_invoke": "YZ_INVOKE",
+	"while": "WHILE",
+	"break": "BREAK",
+	"gothru": "GOTHRU",
+	"as": "AS",
+	"or": "OR",
+}
+
+func atoi(s string) (int, error) {
+	n := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < '0' || c > '9' {
+			break
+		}
+		n = n*10 + int(c - '0')
+	}
+	return n, nil
+}
+
 func lexer(src string, verbose *bool) []Token {
 	var i int = 0
-	var tokens []Token = []Token{}
+	var tokens []Token = make([]Token, 0, len(src)/2)
 
 	for i < len(src) {
 		var c = src[i]
@@ -177,38 +207,9 @@ func lexer(src string, verbose *bool) []Token {
 				j += 1
 			}
 			var word = src[i:j]
-			switch word {
-			case "let":
-				tokens = append(tokens, Token{"LET", word})
-			case "println":
-				tokens = append(tokens, Token{"PRINTLN", word})
-			case "if":
-				tokens = append(tokens, Token{"IF", word})
-			case "func":
-				tokens = append(tokens, Token{"FUNC", word})
-			case "return":
-				tokens = append(tokens, Token{"RETURN", word})
-			case "else":
-				tokens = append(tokens, Token{"ELSE", word})
-			case "import":
-				tokens = append(tokens, Token{"IMPORT", word})
-			case "public":
-				tokens = append(tokens, Token{"PUBLIC", word})
-			case "private":
-				tokens = append(tokens, Token{"PRIVATE", word})
-			case "_yz_invoke":
-				tokens = append(tokens, Token{"YZ_INVOKE", word})
-			case "while":
-				tokens = append(tokens, Token{"WHILE", word})
-			case "break":
-				tokens = append(tokens, Token{"BREAK", word})
-			case "gothru":
-				tokens = append(tokens, Token{"GOTHRU", word})
-			case "as":
-				tokens = append(tokens, Token{"AS", word})
-			case "or":
-				tokens = append(tokens, Token{"OR", word})
-			default:
+			if w, ok := keywords[word]; ok {
+				tokens = append(tokens, Token{w, word})
+			} else {
 				tokens = append(tokens, Token{"IDENT", word})
 			}
 			i = j
@@ -711,7 +712,7 @@ func (p *Parser) primary() any {
 	switch tok.Type {
 	case "NUMBER":
 		p.eat("NUMBER")
-		val, _ := strconv.Atoi(tok.Value)
+		val, _ := atoi(tok.Value)
 		return Num{val}
 	case "IDENT":
 		p.eat("IDENT")
@@ -908,8 +909,8 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any, variables map[strin
 
 	switch function {
 	case "rand_num":
-		min, _ := strconv.Atoi(params["min"].(string))
-		max, _ := strconv.Atoi(params["max"].(string))
+		min, _ := atoi(params["min"].(string))
+		max, _ := atoi(params["max"].(string))
 		return strconv.Itoa(min + rand.IntN(max-min+1))
 	case "guitk_activate_theme":
 		ActivateTheme(params["theme"].(string))
@@ -931,7 +932,7 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any, variables map[strin
 			widget = Label(Txt(paramss["text"]))
 			Pack(widget.(*LabelWidget))
 		case "inputbox":
-			width, _ := strconv.Atoi(paramss["width"])
+			width, _ := atoi(paramss["width"])
 			Pack(TEntry(Textvariable(""), Background(White), Width(width)))
 		case "textbox":
 			widget = Text(Height(14), Width(60))
@@ -1078,7 +1079,7 @@ func handle_yz_invoke(s YZInvokeStmt, params map[string]any, variables map[strin
 		}
 		return ""
 	case "valuefromindex":
-		index, err := strconv.Atoi(params["index"].(string))
+		index, err := atoi(params["index"].(string))
 		if err != nil {
 			panic(err)
 		}
@@ -1159,8 +1160,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 		case "DOUBLE_EQUAL":
 			condition = expr1 == expr2
 		case "LESS_THAN_EQUAL":
-			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+			if e1, err := atoi(expr1.(string)); err == nil {
+				if e2, err := atoi(expr2.(string)); err == nil {
 					condition = e1 <= e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -1169,8 +1170,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 				log.Fatalf("1st expression in operation not a number.")
 			}
 		case "GREATER_EQUAL":
-			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+			if e1, err := atoi(expr1.(string)); err == nil {
+				if e2, err := atoi(expr2.(string)); err == nil {
 					condition = e1 >= e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -1179,8 +1180,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 				log.Fatalf("1st expression in operation not a number.")
 			}
 		case "LESS_THAN":
-			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+			if e1, err := atoi(expr1.(string)); err == nil {
+				if e2, err := atoi(expr2.(string)); err == nil {
 					condition = e1 < e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -1189,8 +1190,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 				log.Fatalf("1st expression in operation not a number.")
 			}
 		case "GREATER":
-			if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-				if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+			if e1, err := atoi(expr1.(string)); err == nil {
+				if e2, err := atoi(expr2.(string)); err == nil {
 					condition = e1 > e2
 				} else {
 					log.Fatalf("2nd expression in operation not a number.")
@@ -1214,8 +1215,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 			case "DOUBLE_EQUAL":
 				conditions = append(conditions, expr1 == expr2)
 			case "LESS_THAN_EQUAL":
-				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+				if e1, err := atoi(expr1.(string)); err == nil {
+					if e2, err := atoi(expr2.(string)); err == nil {
 						conditions = append(conditions, e1 <= e2)
 					} else {
 						log.Fatalf("2nd expression in operation not a number.")
@@ -1224,8 +1225,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 					log.Fatalf("1st expression in operation not a number.")
 				}
 			case "GREATER_EQUAL":
-				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+				if e1, err := atoi(expr1.(string)); err == nil {
+					if e2, err := atoi(expr2.(string)); err == nil {
 						conditions = append(conditions, e1 >= e2)
 					} else {
 						log.Fatalf("2nd expression in operation not a number.")
@@ -1234,8 +1235,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 					log.Fatalf("1st expression in operation not a number.")
 				}
 			case "LESS_THAN":
-				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+				if e1, err := atoi(expr1.(string)); err == nil {
+					if e2, err := atoi(expr2.(string)); err == nil {
 						conditions = append(conditions, e1 < e2)
 					} else {
 						log.Fatalf("2nd expression in operation not a number.")
@@ -1244,8 +1245,8 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 					log.Fatalf("1st expression in operation not a number.")
 				}
 			case "GREATER":
-				if e1, err := strconv.Atoi(expr1.(string)); err == nil {
-					if e2, err := strconv.Atoi(expr2.(string)); err == nil {
+				if e1, err := atoi(expr1.(string)); err == nil {
+					if e2, err := atoi(expr2.(string)); err == nil {
 						conditions = append(conditions, e1 > e2)
 					} else {
 						log.Fatalf("2nd expression in operation not a number.")
@@ -1266,16 +1267,16 @@ func eval_expr(expr any, variables map[string]YZVariable, functions map[string]F
 
 		return strconv.FormatBool(false)
 	case Add:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions).(string))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions).(string))
+		left, _ := atoi(eval_expr(e.Left, variables, functions).(string))
+		right, _ := atoi(eval_expr(e.Right, variables, functions).(string))
 		return strconv.Itoa(left + right)
 	case Sub:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions).(string))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions).(string))
+		left, _ := atoi(eval_expr(e.Left, variables, functions).(string))
+		right, _ := atoi(eval_expr(e.Right, variables, functions).(string))
 		return strconv.Itoa(left - right)
 	case Mul:
-		left, _ := strconv.Atoi(eval_expr(e.Left, variables, functions).(string))
-		right, _ := strconv.Atoi(eval_expr(e.Right, variables, functions).(string))
+		left, _ := atoi(eval_expr(e.Left, variables, functions).(string))
+		right, _ := atoi(eval_expr(e.Right, variables, functions).(string))
 		return strconv.Itoa(left * right)
 	case FuncCallExpr:
 		return func_call_and_return(e, variables, functions)

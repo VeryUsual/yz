@@ -1,0 +1,13 @@
+func sum_to(n) {
+	let sum = 0;
+	let i = 1;
+	while i <= n {
+		let sum = sum + i;
+		let i = i + 1;
+	}
+	return sum;
+}
+
+let N = 10000000;
+let result = sum_to(n N);
+println(result);
